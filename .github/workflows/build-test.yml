@@ -18,4 +18,4 @@ jobs:
             - name: Test
               run: go test ./...
             - name: Benchmark
-              run: go test -bench=. -count=5
+              run: go test -bench . -count 10
