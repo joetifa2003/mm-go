@@ -97,7 +97,7 @@ func TestReallocate(t *testing.T) {
 	allocated[0] = 15
 	assert.Equal(2, len(allocated))
 	allocated = Reallocate(allocated, 3)
-	FreeMany(allocated) // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 	assert.Equal(3, len(allocated))
 	assert.Equal(15, allocated[0]) // data after reallocation stays the same
+	FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 }
