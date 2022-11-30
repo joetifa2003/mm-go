@@ -7,7 +7,7 @@ import (
 // #include <stdlib.h>
 import "C"
 
-// Alloc allocates T on the heap using mmap
+// Alloc allocates T and returns a pointer to it.
 func Alloc[T any]() *T {
 	var zeroV T
 	size := int(unsafe.Sizeof(zeroV))
@@ -15,12 +15,13 @@ func Alloc[T any]() *T {
 	return (*T)(unsafe.Pointer(ptr))
 }
 
+// FreeMany frees memory allocated by Alloc takes a ptr
+// CAUTION: be careful not to double free, and prefer using defer to deallocate
 func Free[T any](ptr *T) {
 	C.free(unsafe.Pointer(ptr))
 }
 
-// AllocMany allocates n of T using mmap and returns a slice representing
-// the heap.
+// AllocMany allocates n of T and returns a slice representing the heap.
 func AllocMany[T any](n int) []T {
 	var zeroV T
 	size := int(unsafe.Sizeof(zeroV))
@@ -31,10 +32,19 @@ func AllocMany[T any](n int) []T {
 	)
 }
 
-func FreeMany[T any](ptr []T) {
-	C.free(unsafe.Pointer(&ptr[0]))
+// FreeMany frees memory allocated by AllocMany takes in the slice (aka the heap)
+// CAUTION: be careful not to double free, and prefer using defer to deallocate
+func FreeMany[T any](slice []T) {
+	C.free(unsafe.Pointer(&slice[0]))
 }
 
-type Value struct {
-	x, y, z int
+// Reallocate reallocates memory allocated with AllocMany and doesn't change underling data
+func Reallocate[T any](slice []T, newN int) []T {
+	var zeroV T
+	size := int(unsafe.Sizeof(zeroV))
+	ptr := C.realloc(unsafe.Pointer(&slice[0]), C.size_t(size*newN))
+	return unsafe.Slice(
+		(*T)(ptr),
+		newN,
+	)
 }
