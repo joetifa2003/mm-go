@@ -11,7 +11,7 @@ import "C"
 func Alloc[T any]() *T {
 	var zeroV T
 	size := int(unsafe.Sizeof(zeroV))
-	ptr := C.calloc(1, C.ulong(size))
+	ptr := C.calloc(1, C.size_t(size))
 	return (*T)(unsafe.Pointer(ptr))
 }
 
@@ -24,7 +24,7 @@ func Free[T any](ptr *T) {
 func AllocMany[T any](n int) []T {
 	var zeroV T
 	size := int(unsafe.Sizeof(zeroV))
-	ptr := C.calloc(C.ulong(n), C.ulong(size))
+	ptr := C.calloc(C.size_t(n), C.size_t(size))
 	return unsafe.Slice(
 		(*T)(ptr),
 		n,
@@ -37,9 +37,4 @@ func FreeMany[T any](ptr []T) {
 
 type Value struct {
 	x, y, z int
-}
-
-func main() {
-	node := Alloc[Value]()
-	Free(node)
 }
