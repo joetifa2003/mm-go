@@ -66,6 +66,8 @@ func BenchmarkArenaManual(b *testing.B) {
 	}
 }
 
+const LOOP_TIMES = 1500
+
 func TestAllocMany(t *testing.T) {
 	assert := assert.New(t)
 
