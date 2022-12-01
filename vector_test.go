@@ -24,7 +24,7 @@ func BenchmarkSlice(b *testing.B) {
 func BenchmarkVector(b *testing.B) {
 	for i := 0; i <= b.N; i++ {
 		numbersVec := NewVector[int]()
-		defer numbersVec.Deallocate()
+		defer numbersVec.Free()
 
 		for j := 0; j < LOOP_TIMES; j++ {
 			numbersVec.Push(j)
@@ -40,7 +40,7 @@ func TestVector(t *testing.T) {
 	assert := assert.New(t)
 
 	v := NewVector[int]()
-	defer v.Deallocate()
+	defer v.Free()
 
 	v.Push(1)
 	v.Push(2)
@@ -59,7 +59,7 @@ func TestVectorInit(t *testing.T) {
 		assert := assert.New(t)
 
 		v := NewVector[int]()
-		defer v.Deallocate()
+		defer v.Free()
 
 		assert.Equal(0, v.Len())
 		assert.Equal(1, v.Cap())
@@ -69,7 +69,7 @@ func TestVectorInit(t *testing.T) {
 		assert := assert.New(t)
 
 		v := NewVector[int](5)
-		defer v.Deallocate()
+		defer v.Free()
 
 		assert.Equal(5, v.Len())
 		assert.Equal(5, v.Cap())
@@ -79,7 +79,7 @@ func TestVectorInit(t *testing.T) {
 		assert := assert.New(t)
 
 		v := NewVector[int](5, 6)
-		defer v.Deallocate()
+		defer v.Free()
 
 		assert.Equal(5, v.Len())
 		assert.Equal(6, v.Cap())
@@ -89,7 +89,7 @@ func TestVectorInit(t *testing.T) {
 		assert := assert.New(t)
 
 		v := InitVector(1, 2, 3)
-		defer v.Deallocate()
+		defer v.Free()
 
 		assert.Equal(3, v.Len())
 		assert.Equal(3, v.Cap())

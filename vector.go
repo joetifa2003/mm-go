@@ -75,7 +75,7 @@ func (v *Vector[T]) Slice() []T {
 }
 
 // Deallocate deallocats the vector
-func (v *Vector[T]) Deallocate() {
+func (v *Vector[T]) Free() {
 	FreeMany(v.data)
 	Free(v)
 }
