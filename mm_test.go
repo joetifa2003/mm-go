@@ -71,7 +71,7 @@ const LOOP_TIMES = 1500
 func TestAllocMany(t *testing.T) {
 	assert := assert.New(t)
 
-	allocated := AllocMany[int](2) // allocates 1 int and returns it as a slice of ints with length 2
+	allocated := AllocMany[int](2) // allocates 2 ints and returns it as a slice of ints with length 2
 	defer FreeMany(allocated)      // it's recommended to make sure the data gets deallocated (defer recommended to prevent leaks)
 	assert.Equal(2, len(allocated))
 	allocated[0] = 15    // changes the data in the slice (aka the heap)

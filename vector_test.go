@@ -93,5 +93,9 @@ func TestVectorInit(t *testing.T) {
 
 		assert.Equal(3, v.Len())
 		assert.Equal(3, v.Cap())
+
+		assert.Equal(3, v.Pop())
+		assert.Equal(2, v.Pop())
+		assert.Equal(1, v.Pop())
 	})
 }
