@@ -34,9 +34,7 @@ func NewVector[T any](args ...int) *Vector[T] {
 // it's len and cap to len(values)
 func InitVector[T any](values ...T) *Vector[T] {
 	vector := createVector[T](len(values), len(values))
-	for _, v := range values {
-		vector.data[0] = v
-	}
+	copy(vector.data, values)
 	return vector
 }
 
