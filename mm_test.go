@@ -15,33 +15,50 @@ type Node struct {
 	Next  *Node
 }
 
+// DoNotOptimiseNodePointer prevent the compiler removing the function bodies
+var DoNotOptimiseNodePointer *Node
+
 func BenchmarkHeapManaged(b *testing.B) {
-	for i := b.N; i <= b.N; i++ {
-		nodes := make([]*Node, NNodes)
+	// Start with a clean slate
+	DoNotOptimiseNodePointer = nil
+	runtime.GC()
+	b.ResetTimer()
+
+	for i := b.N; i != 0; i-- {
+		allocatedNodes := make([]Node, NNodes)
 
 		for j := 0; j < NNodes; j++ {
 			var prev *Node
 			var next *Node
 			if j != 0 {
-				prev = nodes[j-1]
+				prev = &allocatedNodes[j-1]
 			}
 			if j != NNodes-1 {
-				next = nodes[j+1]
+				next = &allocatedNodes[j+1]
 			}
 
-			nodes[j] = &Node{
+			allocatedNodes[j] = Node{
 				Value: j,
 				Prev:  prev,
 				Next:  next,
 			}
 		}
 
-		runtime.GC()
+		DoNotOptimiseNodePointer = &allocatedNodes[len(allocatedNodes)-1]
 	}
+
+	runtime.GC()
+
+	DoNotOptimiseNodePointer = nil
 }
 
 func BenchmarkArenaManual(b *testing.B) {
-	for i := b.N; i <= b.N; i++ {
+	// Start with a clean slate
+	DoNotOptimiseNodePointer = nil
+	runtime.GC()
+	b.ResetTimer()
+
+	for i := b.N; i != 0; i-- {
 		allocatedNodes := AllocMany[Node](NNodes)
 
 		for j := 0; j < NNodes; j++ {
@@ -61,9 +78,11 @@ func BenchmarkArenaManual(b *testing.B) {
 			}
 		}
 
+		DoNotOptimiseNodePointer = &allocatedNodes[len(allocatedNodes)-1]
 		FreeMany(allocatedNodes)
-		runtime.GC()
 	}
+
+	DoNotOptimiseNodePointer = nil
 }
 
 const LOOP_TIMES = 1500

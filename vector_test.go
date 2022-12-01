@@ -1,13 +1,23 @@
 package mm
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+// DoNotOptimise prevent the compiler removing the function bodies
+var DoNotOptimiseInts []int
+var DoNotOptimiseVector *Vector[int]
+
 func BenchmarkSlice(b *testing.B) {
-	for i := 0; i <= b.N; i++ {
+	// Start with a clean slate
+	DoNotOptimiseInts = nil
+	runtime.GC()
+	b.ResetTimer()
+
+	for i := b.N; i != 0; i-- {
 		numbers := []int{}
 
 		for j := 0; j < LOOP_TIMES; j++ {
@@ -18,13 +28,23 @@ func BenchmarkSlice(b *testing.B) {
 			// Pop
 			numbers = numbers[:len(numbers)-1]
 		}
+
+		DoNotOptimiseInts = numbers
 	}
+
+	runtime.GC()
+
+	DoNotOptimiseInts = nil
 }
 
 func BenchmarkVector(b *testing.B) {
-	for i := 0; i <= b.N; i++ {
+	// Start with a clean slate
+	DoNotOptimiseVector = nil
+	runtime.GC()
+	b.ResetTimer()
+
+	for i := b.N; i != 0; i-- {
 		numbersVec := NewVector[int]()
-		defer numbersVec.Free()
 
 		for j := 0; j < LOOP_TIMES; j++ {
 			numbersVec.Push(j)
@@ -33,7 +53,12 @@ func BenchmarkVector(b *testing.B) {
 		for j := 0; j < LOOP_TIMES; j++ {
 			numbersVec.Pop()
 		}
+
+		DoNotOptimiseVector = numbersVec
+		numbersVec.Free()
 	}
+
+	DoNotOptimiseVector = nil
 }
 
 func TestVector(t *testing.T) {
