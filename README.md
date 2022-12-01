@@ -35,8 +35,8 @@ go get github.com/joetifa2003/mm-go
 Alloc is a generic function that allocates T and returns a pointer to it that u can free later using Free
 
 ```go
-ptr := Alloc[int]() // allocates a single int and returns a ptr to it
-defer Free(ptr)     // frees the int (defer recommended to prevent leaks)
+ptr := mm.Alloc[int]() // allocates a single int and returns a ptr to it
+defer mm.Free(ptr)     // frees the int (defer recommended to prevent leaks)
 
 assert.Equal(0, *ptr) // allocations are zeroed by default
 *ptr = 15             // changes the value using the pointer
@@ -48,8 +48,8 @@ type Node struct {
     value int
 }
 
-ptr := Alloc[Node]() // allocates a single Node struct and returns a ptr to it
-defer Free(ptr)     // frees the struct (defer recommended to prevent leaks)
+ptr := mm.Alloc[Node]() // allocates a single Node struct and returns a ptr to it
+defer mm.Free(ptr)     // frees the struct (defer recommended to prevent leaks)
 ```
 
 ## AllocMany/FreeMany
@@ -57,8 +57,8 @@ defer Free(ptr)     // frees the struct (defer recommended to prevent leaks)
 AllocMany is a generic function that allocates n of T and returns a slice that represents the heap (instead of pointer arithmetic => slice indexing) that u can free later using FreeMany
 
 ```go
-allocated := AllocMany[int](2) // allocates 2 ints and returns it as a slice of ints with length 2
-defer FreeMany(allocated)      // it's recommended to make sure the data gets deallocated (defer recommended to prevent leaks)
+allocated := mm.AllocMany[int](2) // allocates 2 ints and returns it as a slice of ints with length 2
+defer mm.FreeMany(allocated)      // it's recommended to make sure the data gets deallocated (defer recommended to prevent leaks)
 assert.Equal(2, len(allocated))
 allocated[0] = 15    // changes the data in the slice (aka the heap)
 ptr := &allocated[0] // takes a pointer to the first int in the heap
@@ -73,13 +73,13 @@ assert.Equal(45, allocated[0])
 Reallocate reallocates memory allocated with AllocMany and doesn't change underling data
 
 ```go
-allocated := AllocMany[int](2) // allocates 2 int and returns it as a slice of ints with length 2
+allocated := mm.AllocMany[int](2) // allocates 2 int and returns it as a slice of ints with length 2
 allocated[0] = 15
 assert.Equal(2, len(allocated))
-allocated = Reallocate(allocated, 3)
+allocated = mm.Reallocate(allocated, 3)
 assert.Equal(3, len(allocated))
 assert.Equal(15, allocated[0]) // data after reallocation stays the same
-FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
+mm.FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 ```
 
 ## Vector
@@ -87,7 +87,7 @@ FreeMany(allocated)            // didn't use defer here because i'm doing a real
 You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead
 
 ```go
-v := NewVector[int]()
+v := mm.NewVector[int]()
 defer v.Free()
 
 v.Push(1)
@@ -103,7 +103,7 @@ assert.Equal(1, v.Pop())
 ```
 
 ```go
-v := NewVector[int](5)
+v := mm.NewVector[int](5)
 defer v.Free()
 
 assert.Equal(5, v.Len())
@@ -111,7 +111,7 @@ assert.Equal(5, v.Cap())
 ```
 
 ```go
-v := NewVector[int](5, 6)
+v := mm.NewVector[int](5, 6)
 defer v.Free()
 
 assert.Equal(5, v.Len())
@@ -119,7 +119,7 @@ assert.Equal(6, v.Cap())
 ```
 
 ```go
-v := InitVector(1, 2, 3)
+v := mm.InitVector(1, 2, 3)
 defer v.Free()
 
 assert.Equal(3, v.Len())
