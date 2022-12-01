@@ -1,3 +1,6 @@
+[![GoReportCard example](https://goreportcard.com/badge/github.com/joetifa2003/mm-go)](https://goreportcard.com/report/github.com/joetifa2003/mm-go)
+[![GoDoc reference example](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/joetifa2003/mm-go)
+
 # mm-go Generic manual memory management for golang
 
 Golang manages memory via GC and it's good for almost every use case but sometimes it can be a bottleneck.
@@ -8,6 +11,7 @@ and this is where mm-go comes in to play.
   - [Installing](#installing)
   - [Alloc/Free](#allocfree)
   - [AllocMany/FreeMany](#allocmanyfreemany)
+  - [ReAlloc](#realloc)
   - [Vector](#vector)
   - [Benchmarks](#benchmarks)
 
@@ -62,6 +66,20 @@ ptr := &allocated[0] // takes a pointer to the first int in the heap
 *ptr = 45            // changes the value from 15 to 45
 
 assert.Equal(45, allocated[0])
+```
+
+## ReAlloc
+
+Reallocate reallocates memory allocated with AllocMany and doesn't change underling data
+
+```go
+allocated := AllocMany[int](2) // allocates 2 int and returns it as a slice of ints with length 2
+allocated[0] = 15
+assert.Equal(2, len(allocated))
+allocated = Reallocate(allocated, 3)
+assert.Equal(3, len(allocated))
+assert.Equal(15, allocated[0]) // data after reallocation stays the same
+FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 ```
 
 ## Vector
