@@ -1,3 +1,8 @@
+# mm-go Generic manual memory management for golang
+
+Golang manages memory via GC and it's good for almost every use case but sometimes it can be a bottleneck.
+and this is where mm-go comes in to play.
+
 - [mm-go Generic manual memory management for golang](#mm-go-generic-manual-memory-management-for-golang)
   - [Before using mm-go](#before-using-mm-go)
   - [Installing](#installing)
@@ -5,11 +10,6 @@
   - [AllocMany/FreeMany](#allocmanyfreemany)
   - [Vector](#vector)
   - [Benchmarks](#benchmarks)
-
-# mm-go Generic manual memory management for golang
-
-Golang manages memory via GC and it's good for almost every use case but sometimes it can be a bottleneck.
-and this is where mm-go comes in to play.
 
 ## Before using mm-go
 
