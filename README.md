@@ -154,30 +154,3 @@ assert.Equal(1, v.Pop())
 
 Check the test files and github actions for the benchmarks (linux, macos, windows).
 mm-go can sometimes be 5-10 times faster, if you are not careful it will be slower!
-
-```
-goos: linux
-goarch: amd64
-pkg: github.com/joetifa2003/mm-go
-cpu: Intel(R) Xeon(R) CPU E5-2673 v4 @ 2.30GHz
-BenchmarkHeapManaged-2   	1000000000	         0.09938 ns/op
-BenchmarkHeapManaged-2   	1000000000	         0.09482 ns/op
-BenchmarkHeapManaged-2   	1000000000	         0.09476 ns/op
-BenchmarkHeapManaged-2   	1000000000	         0.09554 ns/op
-BenchmarkHeapManaged-2   	1000000000	         0.08969 ns/op
-BenchmarkArenaManual-2   	1000000000	         0.005030 ns/op
-BenchmarkArenaManual-2   	1000000000	         0.008007 ns/op
-BenchmarkArenaManual-2   	1000000000	         0.008574 ns/op
-BenchmarkArenaManual-2   	1000000000	         0.008318 ns/op
-BenchmarkArenaManual-2   	1000000000	         0.008397 ns/op
-BenchmarkSlice-2         	   96015	     12658 ns/op
-BenchmarkSlice-2         	  109916	     11724 ns/op
-BenchmarkSlice-2         	  112123	     11606 ns/op
-BenchmarkSlice-2         	  111018	     10988 ns/op
-BenchmarkSlice-2         	   99549	     11017 ns/op
-BenchmarkVector-2        	   50136	     23062 ns/op
-BenchmarkVector-2        	   69448	     22905 ns/op
-BenchmarkVector-2        	   75655	     16998 ns/op
-BenchmarkVector-2        	   73281	     18884 ns/op
-BenchmarkVector-2        	   77398	     17642 ns/op
-```
