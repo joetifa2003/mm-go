@@ -17,6 +17,12 @@ func (c *chunk[T]) Alloc() *T {
 	return &c.data[c.len-1]
 }
 
+func (c *chunk[T]) AllocMany(n int) []T {
+	oldLen := c.len
+	c.len += n
+	return c.data[oldLen:c.len]
+}
+
 func (c *chunk[T]) Free() {
 	FreeMany(c.data)
 	Free(c)
@@ -47,12 +53,31 @@ func NewTypedArena[T any](chunkSize int) *TypedArena[T] {
 // Alloc allocates T from the arena
 func (ta *TypedArena[T]) Alloc() *T {
 	lastChunk := ta.chunks.Last()
-	if lastChunk.len == len(lastChunk.data) {
+	if lastChunk.len == ta.chunkSize {
 		nc := newChunk[T](ta.chunkSize)
 		ta.chunks.Push(nc)
 		return nc.Alloc()
 	}
 	return lastChunk.Alloc()
+}
+
+// AllocMany allocates n of T and returns a slice representing the heap.
+// CAUTION: don't append to the slice, the purpose of it is to replace pointer
+// arithmetic with slice indexing
+// CAUTION: n cannot exceed chunk size
+func (ta *TypedArena[T]) AllocMany(n int) []T {
+	if n > ta.chunkSize {
+		panic("cannot exceed chunk size")
+	}
+
+	lastChunk := ta.chunks.Last()
+	if lastChunk.len+n > ta.chunkSize {
+		nc := newChunk[T](ta.chunkSize)
+		ta.chunks.Push(nc)
+		return nc.AllocMany(n)
+	}
+
+	return lastChunk.AllocMany(n)
 }
 
 // Free frees all allocated memory

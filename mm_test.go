@@ -71,25 +71,23 @@ func BenchmarkManual(b *testing.B) {
 
 func arenaManual(nodes int) {
 	arena := NewTypedArena[Node](nodes)
-	res := make([]*Node, nodes)
+	allocatedNodes := arena.AllocMany(nodes)
 
 	for j := 0; j < nodes; j++ {
 		var prev *Node
 		var next *Node
 		if j != 0 {
-			prev = res[j-1]
+			prev = &allocatedNodes[j-1]
 		}
 		if j != nodes-1 {
-			next = res[j+1]
+			next = &allocatedNodes[j+1]
 		}
 
-		node := arena.Alloc()
-		*node = Node{
+		allocatedNodes[j] = Node{
 			Value: j,
 			Prev:  prev,
 			Next:  next,
 		}
-		res[j] = node
 	}
 
 	arena.Free()
