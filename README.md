@@ -154,3 +154,22 @@ assert.Equal(1, v.Pop())
 
 Check the test files and github actions for the benchmarks (linux, macos, windows).
 mm-go can sometimes be 5-10 times faster, if you are not careful it will be slower!
+
+```
+Run benchstat out.txt
+name                                time/op
+HeapManaged/node_count_10000-3      1.07ms ±53%
+HeapManaged/node_count_100000-3     5.08ms ±23%
+HeapManaged/node_count_10000000-3    838ms ±38%
+HeapManaged/node_count_100000000-3   7.90s ±32%
+Manual/node_count_10000-3            512µs ±51%
+Manual/node_count_100000-3           924µs ±13%
+Manual/node_count_10000000-3         144ms ± 2%
+Manual/node_count_100000000-3        1.53s ±10%
+ArenaManual/node_count_10000-3       660µs ±44%
+ArenaManual/node_count_100000-3     1.32ms ±10%
+ArenaManual/node_count_10000000-3    248ms ± 8%
+ArenaManual/node_count_100000000-3   2.29s ± 8%
+Slice-3                             13.6µs ±14%
+Vector-3                            13.4µs ±22%
+```
