@@ -10,10 +10,10 @@ and this is where mm-go comes in to play.
   - [Before using mm-go](#before-using-mm-go)
   - [Installing](#installing)
   - [TypedArena (recommended)](#typedarena-recommended)
+  - [Vector](#vector)
   - [Alloc/Free](#allocfree)
   - [AllocMany/FreeMany](#allocmanyfreemany)
   - [ReAlloc](#realloc)
-  - [Vector](#vector)
   - [Benchmarks](#benchmarks)
 
 ## Before using mm-go
@@ -42,12 +42,71 @@ Using this will simplify memory management and reduce calls to cgo by
 preallocating memory with the specified chunk size.
 
 ```go
-arena := mm.NewTypedArena[int](1)
-int1 := arena.Alloc()
-*int1 = 15
-int2 := arena.Alloc()
-*int2 = 20
-arena.Free()
+arena := mm.NewTypedArena[int](3)
+defer arena.Free() // freeing the arena using defer to prevent leaks
+
+int1 := arena.Alloc()      // allocates 1 int from arena
+*int1 = 1                  // changing it's value
+ints := arena.AllocMany(2) // allocates 2 ints from the arena and returns a slice representing the heap (instead of pointer arithmetic)
+ints[0] = 2                // changing the first value
+ints[1] = 3                // changing the second value
+
+// you can also take pointers from the slice
+intPtr1 := &ints[0] // taking pointer from the manually managed heap
+*intPtr1 = 15 // changing the value using pointers
+
+assert.Equal(1, *int1)
+assert.Equal(2, len(ints))
+assert.Equal(15, ints[0])
+assert.Equal(3, ints[1])
+```
+
+## Vector
+
+You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead
+
+```go
+v := mm.NewVector[int]()
+defer v.Free()
+
+v.Push(1)
+v.Push(2)
+v.Push(3)
+
+assert.Equal(3, v.Len())
+assert.Equal(4, v.Cap())
+assert.Equal([]int{1, 2, 3}, v.Slice())
+assert.Equal(3, v.Pop())
+assert.Equal(2, v.Pop())
+assert.Equal(1, v.Pop())
+```
+
+```go
+v := mm.NewVector[int](5)
+defer v.Free()
+
+assert.Equal(5, v.Len())
+assert.Equal(5, v.Cap())
+```
+
+```go
+v := mm.NewVector[int](5, 6)
+defer v.Free()
+
+assert.Equal(5, v.Len())
+assert.Equal(6, v.Cap())
+```
+
+```go
+v := mm.InitVector(1, 2, 3)
+defer v.Free()
+
+assert.Equal(3, v.Len())
+assert.Equal(3, v.Cap())
+
+assert.Equal(3, v.Pop())
+assert.Equal(2, v.Pop())
+assert.Equal(1, v.Pop())
 ```
 
 ## Alloc/Free
@@ -100,54 +159,6 @@ allocated = mm.Reallocate(allocated, 3)
 assert.Equal(3, len(allocated))
 assert.Equal(15, allocated[0]) // data after reallocation stays the same
 mm.FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
-```
-
-## Vector
-
-You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead
-
-```go
-v := mm.NewVector[int]()
-defer v.Free()
-
-v.Push(1)
-v.Push(2)
-v.Push(3)
-
-assert.Equal(3, v.Len())
-assert.Equal(4, v.Cap())
-assert.Equal([]int{1, 2, 3}, v.Slice())
-assert.Equal(3, v.Pop())
-assert.Equal(2, v.Pop())
-assert.Equal(1, v.Pop())
-```
-
-```go
-v := mm.NewVector[int](5)
-defer v.Free()
-
-assert.Equal(5, v.Len())
-assert.Equal(5, v.Cap())
-```
-
-```go
-v := mm.NewVector[int](5, 6)
-defer v.Free()
-
-assert.Equal(5, v.Len())
-assert.Equal(6, v.Cap())
-```
-
-```go
-v := mm.InitVector(1, 2, 3)
-defer v.Free()
-
-assert.Equal(3, v.Len())
-assert.Equal(3, v.Cap())
-
-assert.Equal(3, v.Pop())
-assert.Equal(2, v.Pop())
-assert.Equal(1, v.Pop())
 ```
 
 ## Benchmarks
