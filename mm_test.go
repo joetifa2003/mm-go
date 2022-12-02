@@ -40,7 +40,7 @@ func BenchmarkHeapManaged(b *testing.B) {
 	}
 }
 
-func BenchmarkArenaManual(b *testing.B) {
+func BenchmarkManual(b *testing.B) {
 	for i := b.N; i <= b.N; i++ {
 		allocatedNodes := AllocMany[Node](NNodes)
 
@@ -66,7 +66,34 @@ func BenchmarkArenaManual(b *testing.B) {
 	}
 }
 
-const LOOP_TIMES = 1500
+func BenchmarkArenaManual(b *testing.B) {
+	for i := b.N; i <= b.N; i++ {
+		arena := NewTypedArena[Node](NNodes)
+		res := make([]*Node, NNodes)
+
+		for j := 0; j < NNodes; j++ {
+			var prev *Node
+			var next *Node
+			if j != 0 {
+				prev = res[j-1]
+			}
+			if j != NNodes-1 {
+				next = res[j+1]
+			}
+
+			node := arena.Alloc()
+			*node = Node{
+				Value: j,
+				Prev:  prev,
+				Next:  next,
+			}
+			res[j] = node
+		}
+
+		arena.Free()
+		runtime.GC()
+	}
+}
 
 func TestAllocMany(t *testing.T) {
 	assert := assert.New(t)

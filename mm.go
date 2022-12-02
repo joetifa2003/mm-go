@@ -19,11 +19,14 @@ func c_realloc(ptr unsafe.Pointer, newSize int) unsafe.Pointer {
 	return C.realloc(ptr, C.size_t(newSize))
 }
 
+func getSize[T any]() int {
+	var zeroV T
+	return int(unsafe.Sizeof(zeroV))
+}
+
 // Alloc allocates T and returns a pointer to it.
 func Alloc[T any]() *T {
-	var zeroV T
-	size := int(unsafe.Sizeof(zeroV))
-	ptr := c_calloc(1, size)
+	ptr := c_calloc(1, getSize[T]())
 	return (*T)(unsafe.Pointer(ptr))
 }
 
@@ -37,9 +40,7 @@ func Free[T any](ptr *T) {
 // CAUTION: don't append to the slice, the purpose of it is to replace pointer
 // arithmetic with slice indexing
 func AllocMany[T any](n int) []T {
-	var zeroV T
-	size := int(unsafe.Sizeof(zeroV))
-	ptr := c_calloc(n, size)
+	ptr := c_calloc(n, getSize[T]())
 	return unsafe.Slice(
 		(*T)(ptr),
 		n,
@@ -54,9 +55,7 @@ func FreeMany[T any](slice []T) {
 
 // Reallocate reallocates memory allocated with AllocMany and doesn't change underling data
 func Reallocate[T any](slice []T, newN int) []T {
-	var zeroV T
-	size := int(unsafe.Sizeof(zeroV))
-	ptr := c_realloc(unsafe.Pointer(&slice[0]), size*newN)
+	ptr := c_realloc(unsafe.Pointer(&slice[0]), getSize[T]()*newN)
 	return unsafe.Slice(
 		(*T)(ptr),
 		newN,

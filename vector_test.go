@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const LOOP_TIMES = 1500
+
 func BenchmarkSlice(b *testing.B) {
 	for i := 0; i <= b.N; i++ {
 		numbers := []int{}

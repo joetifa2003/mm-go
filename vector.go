@@ -72,6 +72,11 @@ func (v *Vector[T]) Slice() []T {
 	return v.data[:v.len]
 }
 
+// Last gets the last element from a vector
+func (v *Vector[T]) Last() T {
+	return v.data[v.len-1]
+}
+
 // Deallocate deallocats the vector
 func (v *Vector[T]) Free() {
 	FreeMany(v.data)

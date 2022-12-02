@@ -9,6 +9,7 @@ and this is where mm-go comes in to play.
 - [mm-go Generic manual memory management for golang](#mm-go-generic-manual-memory-management-for-golang)
   - [Before using mm-go](#before-using-mm-go)
   - [Installing](#installing)
+  - [TypedArena (recommended)](#typedarena-recommended)
   - [Alloc/Free](#allocfree)
   - [AllocMany/FreeMany](#allocmanyfreemany)
   - [ReAlloc](#realloc)
@@ -28,6 +29,25 @@ and this is where mm-go comes in to play.
 
 ```
 go get github.com/joetifa2003/mm-go
+```
+
+## TypedArena (recommended)
+
+NewTypedArena creates a typed arena with the specified chunk size.
+a chunk is the the unit of the arena, if T is int for example and the
+chunk size is 5, then each chunk is going to hold 5 ints. And if the
+chunk is filled it will allocate another chunk that can hold 5 ints.
+then you can call FreeArena and it will deallocate all chunks together.
+Using this will simplify memory management and reduce calls to cgo by
+preallocating memory with the specified chunk size.
+
+```go
+arena := mm.NewTypedArena[int](1)
+int1 := arena.Alloc()
+*int1 = 15
+int2 := arena.Alloc()
+*int2 = 20
+arena.Free()
 ```
 
 ## Alloc/Free
