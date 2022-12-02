@@ -1,13 +1,12 @@
 package mm
 
 import (
+	"fmt"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-const NNodes = 1000000
 
 type Node struct {
 	Value int
@@ -15,83 +14,100 @@ type Node struct {
 	Next  *Node
 }
 
-func BenchmarkHeapManaged(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		nodes := make([]*Node, NNodes)
+func heapManaged(nodes int) {
+	allocated := make([]*Node, nodes)
 
-		for j := 0; j < NNodes; j++ {
-			var prev *Node
-			var next *Node
-			if j != 0 {
-				prev = nodes[j-1]
-			}
-			if j != NNodes-1 {
-				next = nodes[j+1]
-			}
-
-			nodes[j] = &Node{
-				Value: j,
-				Prev:  prev,
-				Next:  next,
-			}
+	for j := 0; j < nodes; j++ {
+		var prev *Node
+		var next *Node
+		if j != 0 {
+			prev = allocated[j-1]
+		}
+		if j != nodes-1 {
+			next = allocated[j+1]
 		}
 
-		runtime.GC()
+		allocated[j] = &Node{
+			Value: j,
+			Prev:  prev,
+			Next:  next,
+		}
 	}
+
+	runtime.GC()
+}
+
+func BenchmarkHeapManaged(b *testing.B) {
+	benchMarkSuit(b, heapManaged)
+}
+
+func manual(nodes int) {
+	allocatedNodes := AllocMany[Node](nodes)
+
+	for j := 0; j < nodes; j++ {
+		var prev *Node
+		var next *Node
+		if j != 0 {
+			prev = &allocatedNodes[j-1]
+		}
+		if j != nodes-1 {
+			next = &allocatedNodes[j+1]
+		}
+
+		allocatedNodes[j] = Node{
+			Value: j,
+			Prev:  prev,
+			Next:  next,
+		}
+	}
+
+	FreeMany(allocatedNodes)
+	runtime.GC()
 }
 
 func BenchmarkManual(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		allocatedNodes := AllocMany[Node](NNodes)
+	benchMarkSuit(b, manual)
+}
 
-		for j := 0; j < NNodes; j++ {
-			var prev *Node
-			var next *Node
-			if j != 0 {
-				prev = &allocatedNodes[j-1]
-			}
-			if j != NNodes-1 {
-				next = &allocatedNodes[j+1]
-			}
+func arenaManual(nodes int) {
+	arena := NewTypedArena[Node](nodes)
+	res := make([]*Node, nodes)
 
-			allocatedNodes[j] = Node{
-				Value: j,
-				Prev:  prev,
-				Next:  next,
-			}
+	for j := 0; j < nodes; j++ {
+		var prev *Node
+		var next *Node
+		if j != 0 {
+			prev = res[j-1]
+		}
+		if j != nodes-1 {
+			next = res[j+1]
 		}
 
-		FreeMany(allocatedNodes)
-		runtime.GC()
+		node := arena.Alloc()
+		*node = Node{
+			Value: j,
+			Prev:  prev,
+			Next:  next,
+		}
+		res[j] = node
 	}
+
+	arena.Free()
+	runtime.GC()
 }
 
 func BenchmarkArenaManual(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		arena := NewTypedArena[Node](NNodes)
-		res := make([]*Node, NNodes)
+	benchMarkSuit(b, arenaManual)
+}
 
-		for j := 0; j < NNodes; j++ {
-			var prev *Node
-			var next *Node
-			if j != 0 {
-				prev = res[j-1]
+func benchMarkSuit(b *testing.B, f func(int)) {
+	nodeCounts := []int{10000, 100000, 10000000, 100000000}
+	for _, nc := range nodeCounts {
+		b.Run(fmt.Sprintf("node count %d", nc), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				f(nc)
 			}
-			if j != NNodes-1 {
-				next = res[j+1]
-			}
-
-			node := arena.Alloc()
-			*node = Node{
-				Value: j,
-				Prev:  prev,
-				Next:  next,
-			}
-			res[j] = node
-		}
-
-		arena.Free()
-		runtime.GC()
+		})
 	}
 }
 

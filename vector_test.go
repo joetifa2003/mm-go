@@ -26,7 +26,6 @@ func BenchmarkSlice(b *testing.B) {
 func BenchmarkVector(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		numbersVec := NewVector[int]()
-		defer numbersVec.Free()
 
 		for j := 0; j < LOOP_TIMES; j++ {
 			numbersVec.Push(j)
@@ -35,6 +34,8 @@ func BenchmarkVector(b *testing.B) {
 		for j := 0; j < LOOP_TIMES; j++ {
 			numbersVec.Pop()
 		}
+
+		numbersVec.Free()
 	}
 }
 
