@@ -77,6 +77,11 @@ func (v *Vector[T]) Last() T {
 	return v.data[v.len-1]
 }
 
+// At gets element T at specified index
+func (v *Vector[T]) At(idx int) T {
+	return v.data[idx]
+}
+
 // Deallocate deallocats the vector
 func (v *Vector[T]) Free() {
 	FreeMany(v.data)
