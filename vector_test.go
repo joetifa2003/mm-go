@@ -9,7 +9,7 @@ import (
 const LOOP_TIMES = 1500
 
 func BenchmarkSlice(b *testing.B) {
-	for i := 0; i <= b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		numbers := []int{}
 
 		for j := 0; j < LOOP_TIMES; j++ {
@@ -24,7 +24,7 @@ func BenchmarkSlice(b *testing.B) {
 }
 
 func BenchmarkVector(b *testing.B) {
-	for i := 0; i <= b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		numbersVec := NewVector[int]()
 		defer numbersVec.Free()
 

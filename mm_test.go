@@ -16,7 +16,7 @@ type Node struct {
 }
 
 func BenchmarkHeapManaged(b *testing.B) {
-	for i := b.N; i <= b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		nodes := make([]*Node, NNodes)
 
 		for j := 0; j < NNodes; j++ {
@@ -41,7 +41,7 @@ func BenchmarkHeapManaged(b *testing.B) {
 }
 
 func BenchmarkManual(b *testing.B) {
-	for i := b.N; i <= b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		allocatedNodes := AllocMany[Node](NNodes)
 
 		for j := 0; j < NNodes; j++ {
@@ -67,7 +67,7 @@ func BenchmarkManual(b *testing.B) {
 }
 
 func BenchmarkArenaManual(b *testing.B) {
-	for i := b.N; i <= b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		arena := NewTypedArena[Node](NNodes)
 		res := make([]*Node, NNodes)
 
