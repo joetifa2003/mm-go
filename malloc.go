@@ -83,8 +83,18 @@ func malloc(size int) unsafe.Pointer {
 				if metaPtr.size >= size {
 					metaPtr.free = 1 // make it not available
 
+					// zero out the memory
+					ptr := unsafe.Pointer(uintptr(unsafe.Pointer(metaPtr)) + sizeOfMetaStruct)
+					ptrData := unsafe.Slice(
+						(*byte)(ptr),
+						size,
+					)
+					for i := range ptrData {
+						ptrData[i] = 0
+					}
+
 					// finally returns the pointer to the data after the meta struct
-					return unsafe.Pointer(uintptr(unsafe.Pointer(metaPtr)) + sizeOfMetaStruct)
+					return ptr
 				}
 			}
 
