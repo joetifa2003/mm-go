@@ -18,8 +18,6 @@ jobs:
             - name: Test
               run: go test ./...
             - name: Benchmark
-              run: go test -bench . > out.txt
-            - name: Benchmark output
-              run: cat out.txt
+              run: go test -bench .
             - name: Benchstat
-              run: benchstat out.txt
+              run: go test -bench . > out.txt && benchstat out.txt
