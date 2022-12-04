@@ -19,5 +19,7 @@ jobs:
               run: go test ./...
             - name: Benchmark
               run: go test -bench . > out.txt
+            - name: Benchmark output
+              run: cat out.txt
             - name: Benchstat
               run: benchstat out.txt
