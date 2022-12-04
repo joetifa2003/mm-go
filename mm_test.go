@@ -95,7 +95,7 @@ func arenaManual(nodes int) {
 }
 
 func BenchmarkArenaManual(b *testing.B) {
-	arenaManual(100)
+	benchMarkSuit(b, arenaManual)
 }
 
 func benchMarkSuit(b *testing.B, f func(int)) {
