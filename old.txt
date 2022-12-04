@@ -1,0 +1,28 @@
+goos: linux
+goarch: amd64
+pkg: github.com/joetifa2003/mm-go
+cpu: Intel(R) Core(TM) i7-4710HQ CPU @ 2.50GHz
+BenchmarkHeapManaged/node_count_10000-8         	    1971	    942064 ns/op
+BenchmarkHeapManaged/node_count_10000-8         	    1498	   1416423 ns/op
+BenchmarkHeapManaged/node_count_100000-8        	     136	   8996040 ns/op
+BenchmarkHeapManaged/node_count_100000-8        	     158	   9552012 ns/op
+BenchmarkHeapManaged/node_count_10000000-8      	       3	 465009033 ns/op
+BenchmarkHeapManaged/node_count_10000000-8      	       3	 436369647 ns/op
+BenchmarkManual/node_count_10000-8              	    4620	    288544 ns/op
+BenchmarkManual/node_count_10000-8              	    4694	    231446 ns/op
+BenchmarkManual/node_count_100000-8             	    1768	    656876 ns/op
+BenchmarkManual/node_count_100000-8             	    1900	    772189 ns/op
+BenchmarkManual/node_count_10000000-8           	       9	 117497443 ns/op
+BenchmarkManual/node_count_10000000-8           	       9	 120034943 ns/op
+BenchmarkArenaManual/node_count_10000-8         	    4692	    261762 ns/op
+BenchmarkArenaManual/node_count_10000-8         	    4231	    272138 ns/op
+BenchmarkArenaManual/node_count_100000-8        	    1903	    726732 ns/op
+BenchmarkArenaManual/node_count_100000-8        	    1336	   1219530 ns/op
+BenchmarkArenaManual/node_count_10000000-8      	       9	 115605921 ns/op
+BenchmarkArenaManual/node_count_10000000-8      	       9	 116302316 ns/op
+BenchmarkSlice-8                                	  122643	     10296 ns/op
+BenchmarkSlice-8                                	  128859	     20855 ns/op
+BenchmarkVector-8                               	  123208	      9690 ns/op
+BenchmarkVector-8                               	  126246	      9563 ns/op
+PASS
+ok  	github.com/joetifa2003/mm-go	38.887s

@@ -95,11 +95,11 @@ func arenaManual(nodes int) {
 }
 
 func BenchmarkArenaManual(b *testing.B) {
-	benchMarkSuit(b, arenaManual)
+	arenaManual(100)
 }
 
 func benchMarkSuit(b *testing.B, f func(int)) {
-	nodeCounts := []int{10000, 100000, 10000000, 100000000}
+	nodeCounts := []int{10000, 100000, 10000000}
 	for _, nc := range nodeCounts {
 		b.Run(fmt.Sprintf("node count %d", nc), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -128,7 +128,6 @@ func TestAlloc(t *testing.T) {
 	ptr := Alloc[int]() // allocates a single int and returns a ptr to it
 	defer Free(ptr)     // frees the int (defer recommended to prevent leaks)
 
-	assert.Equal(0, *ptr) // allocations are zeroed by default
 	*ptr = 15
 	assert.Equal(15, *ptr)
 }
