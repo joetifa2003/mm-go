@@ -1,6 +1,7 @@
 package mm
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -20,6 +21,8 @@ func BenchmarkSlice(b *testing.B) {
 			// Pop
 			numbers = numbers[:len(numbers)-1]
 		}
+
+		runtime.GC()
 	}
 }
 
@@ -36,6 +39,7 @@ func BenchmarkVector(b *testing.B) {
 		}
 
 		numbersVec.Free()
+		runtime.GC()
 	}
 }
 

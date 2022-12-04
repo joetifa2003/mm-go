@@ -20,4 +20,4 @@ jobs:
             - name: Benchmark
               run: go test -bench .
             - name: Benchstat
-              run: go test -bench . > out.txt && benchstat out.txt
+              run: go test -bench . -count 5 > out.txt && benchstat out.txt

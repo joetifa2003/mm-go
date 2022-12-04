@@ -99,7 +99,7 @@ func BenchmarkArenaManual(b *testing.B) {
 }
 
 func benchMarkSuit(b *testing.B, f func(int)) {
-	nodeCounts := []int{10000, 100000, 10000000}
+	nodeCounts := []int{10000, 100000, 10000000, 100000000}
 	for _, nc := range nodeCounts {
 		b.Run(fmt.Sprintf("node count %d", nc), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
