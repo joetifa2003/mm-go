@@ -9,7 +9,7 @@ import (
 func TestTypedArena(t *testing.T) {
 	assert := assert.New(t)
 
-	arena := NewTypedArena[int](3)
+	arena := NewTypedArena[int](2)
 	defer arena.Free()
 
 	int1 := arena.Alloc()      // allocates 1 int from arena

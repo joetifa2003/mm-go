@@ -1,36 +1,36 @@
 package mm
 
-type chunk[T any] struct {
+type typedChunk[T any] struct {
 	data []T
 	len  int
 }
 
-func newChunk[T any](size int) *chunk[T] {
-	chunk := Alloc[chunk[T]]()
+func newChunk[T any](size int) *typedChunk[T] {
+	chunk := Alloc[typedChunk[T]]()
 	chunk.data = AllocMany[T](size)
 
 	return chunk
 }
 
-func (c *chunk[T]) Alloc() *T {
+func (c *typedChunk[T]) Alloc() *T {
 	c.len++
 	return &c.data[c.len-1]
 }
 
-func (c *chunk[T]) AllocMany(n int) []T {
+func (c *typedChunk[T]) AllocMany(n int) []T {
 	oldLen := c.len
 	c.len += n
 	return c.data[oldLen:c.len]
 }
 
-func (c *chunk[T]) Free() {
+func (c *typedChunk[T]) Free() {
 	FreeMany(c.data)
 	Free(c)
 }
 
 // TypedArena is a growable typed arena
 type TypedArena[T any] struct {
-	chunks    *Vector[*chunk[T]]
+	chunks    *Vector[*typedChunk[T]]
 	chunkSize int
 }
 
@@ -42,7 +42,7 @@ type TypedArena[T any] struct {
 func NewTypedArena[T any](chunkSize int) *TypedArena[T] {
 	tArena := Alloc[TypedArena[T]]()
 	tArena.chunkSize = chunkSize
-	tArena.chunks = NewVector[*chunk[T]]()
+	tArena.chunks = NewVector[*typedChunk[T]]()
 
 	firstChunk := newChunk[T](chunkSize)
 	tArena.chunks.Push(firstChunk)

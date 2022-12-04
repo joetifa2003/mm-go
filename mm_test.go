@@ -128,7 +128,6 @@ func TestAlloc(t *testing.T) {
 	ptr := Alloc[int]() // allocates a single int and returns a ptr to it
 	defer Free(ptr)     // frees the int (defer recommended to prevent leaks)
 
-	assert.Equal(0, *ptr) // allocations are zeroed by default
 	*ptr = 15
 	assert.Equal(15, *ptr)
 }
