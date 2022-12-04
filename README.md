@@ -19,11 +19,10 @@ and this is where mm-go comes in to play.
 ## Before using mm-go
 
 -   Golang doesn't have any way to manually allocate/free memory, so how does mm-go allocate/free?
-    It does so via cgo.
+    It does so via a custom allocator (see malloc.go) using direct system calls.
 -   Before considering using this try to optimize your program to use less pointers, as golang GC most of the time performs worse when there is a lot of pointers, if you can't use this lib.
 -   Manual memory management provides better performance (most of the time) but you are 100% responsible for managing it (bugs, segfaults, use after free, double free, ....)
 -   Don't mix Manually and Managed memory (example if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead)
--   Lastly mm-go uses cgo for calloc/free and it's known that calling cgo has some overhead so try to minimize the calls to cgo (in hot loops for example)
 
 ## Installing
 
@@ -38,8 +37,7 @@ a chunk is the the unit of the arena, if T is int for example and the
 chunk size is 5, then each chunk is going to hold 5 ints. And if the
 chunk is filled it will allocate another chunk that can hold 5 ints.
 then you can call FreeArena and it will deallocate all chunks together.
-Using this will simplify memory management and reduce calls to cgo by
-preallocating memory with the specified chunk size.
+Using this will simplify memory management.
 
 ```go
 arena := mm.NewTypedArena[int](3)
@@ -63,7 +61,7 @@ assert.Equal(3, ints[1])
 
 ## Vector
 
-You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead
+You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct.
 
 ```go
 v := mm.NewVector[int]()
@@ -111,7 +109,7 @@ assert.Equal(1, v.Pop())
 
 ## Alloc/Free
 
-Alloc is a generic function that allocates T and returns a pointer to it that u can free later using Free
+Alloc is a generic function that allocates T and returns a pointer to it that you can free later using Free
 
 ```go
 ptr := mm.Alloc[int]() // allocates a single int and returns a ptr to it
@@ -133,7 +131,7 @@ defer mm.Free(ptr)     // frees the struct (defer recommended to prevent leaks)
 
 ## AllocMany/FreeMany
 
-AllocMany is a generic function that allocates n of T and returns a slice that represents the heap (instead of pointer arithmetic => slice indexing) that u can free later using FreeMany
+AllocMany is a generic function that allocates n of T and returns a slice that represents the heap (instead of pointer arithmetic => slice indexing) that you can free later using FreeMany
 
 ```go
 allocated := mm.AllocMany[int](2) // allocates 2 ints and returns it as a slice of ints with length 2
@@ -164,7 +162,7 @@ mm.FreeMany(allocated)            // didn't use defer here because i'm doing a r
 ## Benchmarks
 
 Check the test files and github actions for the benchmarks (linux, macos, windows).
-mm-go can sometimes be 5-10 times faster, if you are not careful it will be slower!
+mm-go can sometimes be 5-10 times faster.
 
 ```
 Run benchstat out.txt
