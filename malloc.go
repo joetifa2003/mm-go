@@ -2,13 +2,14 @@ package mm
 
 import (
 	"math"
+	"os"
 	"sync"
 	"unsafe"
 
 	"github.com/edsrzf/mmap-go"
 )
 
-const pageSize = 4096
+var pageSize = os.Getpagesize()
 
 // Blocks allocated from MMap
 type block struct {
@@ -23,7 +24,7 @@ type metadata struct {
 }
 
 var sizeOfBlockStruct = unsafe.Sizeof(block{})
-var sizeOfDataFieldInBlock = pageSize - sizeOfBlockStruct // The size of the data field in block struct (= pageSize - size of block struct)
+var sizeOfDataFieldInBlock = uintptr(pageSize) - sizeOfBlockStruct // The size of the data field in block struct (= pageSize - size of block struct)
 
 var sizeOfMetaStruct = unsafe.Sizeof(metadata{})
 
@@ -71,7 +72,7 @@ func malloc(size int) unsafe.Pointer {
 		// get the metadata struct
 		metaPtr := (*metadata)(unsafe.Pointer(&currentBlock.data[0]))
 
-		// checks if the metaPtr is inside the data field in the block
+		// checks if the metaPtr can be inside the data field in the block
 		for uintptr(unsafe.Pointer(metaPtr))+sizeOfMetaStruct+uintptr(size)-uintptr(unsafe.Pointer(&currentBlock.data[0])) <= uintptr(len(currentBlock.data)) {
 			if metaPtr.free == 0 {
 				if metaPtr.size == 0 {
