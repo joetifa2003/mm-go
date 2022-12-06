@@ -388,20 +388,21 @@ Check the test files and github actions for the benchmarks (linux, macos, window
 mm-go can sometimes be 5-10 times faster.
 
 ```
-Run benchstat out.txt
 name                                time/op
-HeapManaged/node_count_10000-2       510µs ± 1%
-HeapManaged/node_count_100000-2     3.64ms ± 1%
-HeapManaged/node_count_10000000-2    645ms ± 1%
-HeapManaged/node_count_100000000-2   6.33s ± 3%
-Manual/node_count_10000-2            223µs ± 1%
-Manual/node_count_100000-2           580µs ± 1%
-Manual/node_count_10000000-2        69.0ms ± 1%
-Manual/node_count_100000000-2        684ms ± 0%
-ArenaManual/node_count_10000-2       223µs ± 1%
-ArenaManual/node_count_100000-2      560µs ± 0%
-ArenaManual/node_count_10000000-2   67.6ms ± 1%
-ArenaManual/node_count_100000000-2   666ms ± 0%
-Slice-2                             9.26µs ± 1%
-Vector-2                            10.2µs ± 3%
+
+Slice-2                             3.95µs ± 3%
+Vector-2                            4.61µs ± 4%
+LinkedList-2                         402µs ± 5%
+HeapManaged/node_count_10000-2       786µs ± 2%
+HeapManaged/node_count_100000-2     4.71ms ± 2%
+HeapManaged/node_count_10000000-2    879ms ± 8%
+HeapManaged/node_count_100000000-2   8.60s ± 4%
+Manual/node_count_10000-2            675µs ± 8%
+Manual/node_count_100000-2          1.03ms ± 5%
+Manual/node_count_10000000-2        59.4ms ± 1%
+Manual/node_count_100000000-2        551ms ± 1%
+ArenaManual/node_count_10000-2       623µs ± 4%
+ArenaManual/node_count_100000-2      933µs ± 5%
+ArenaManual/node_count_10000000-2   57.6ms ± 2%
+ArenaManual/node_count_100000000-2   542ms ± 3%
 ```
