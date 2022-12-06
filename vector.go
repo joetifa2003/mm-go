@@ -1,5 +1,8 @@
 package mm
 
+import "fmt"
+
+// Vector a contiguous growable array type
 type Vector[T any] struct {
 	data []T
 	cap  int
@@ -55,7 +58,7 @@ func (v *Vector[T]) Pop() T {
 	return v.data[v.len]
 }
 
-// Len gets vector len
+// Len gets vector length
 func (v *Vector[T]) Len() int {
 	return v.len
 }
@@ -79,6 +82,10 @@ func (v *Vector[T]) Last() T {
 
 // At gets element T at specified index
 func (v *Vector[T]) At(idx int) T {
+	if idx >= v.len {
+		panic(fmt.Sprintf("cannot index %d in a vector with length %d", idx, v.len))
+	}
+
 	return v.data[idx]
 }
 
