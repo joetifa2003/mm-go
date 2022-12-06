@@ -28,6 +28,9 @@ func TestVector(t *testing.T) {
 
 	assert.Equal(1, v.At(0))
 	assert.Equal(2, v.At(1))
+	assert.Panics(func() {
+		v.At(3)
+	})
 }
 
 func TestVectorInit(t *testing.T) {
