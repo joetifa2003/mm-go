@@ -76,6 +76,8 @@ func testIndexing(t *testing.T) {
 
 	ll.PushBack(1)
 	ll.PushBack(2)
+	ll.PushBack(3)
+	ll.PushBack(4)
 
 	assert.Equal(1, ll.At(0))
 	assert.Equal(2, ll.At(1))
@@ -83,6 +85,26 @@ func testIndexing(t *testing.T) {
 	assert.Panics(func() {
 		ll.At(999)
 	})
+
+	firstEvenIndex, ok := ll.FindIndex(func(value int) bool {
+		return value%2 == 0
+	})
+
+	assert.Equal(true, ok)
+	assert.Equal(1, firstEvenIndex)
+
+	idx, ok := ll.FindIndex(func(value int) bool {
+		return value == 999
+	})
+
+	assert.Equal(false, ok)
+	assert.Equal(0, idx)
+
+	evenIndexes := ll.FindIndexes(func(value int) bool {
+		return value%2 == 0
+	})
+
+	assert.Equal([]int{1, 3}, evenIndexes)
 }
 
 func testRemove(t *testing.T) {
@@ -124,6 +146,21 @@ func testRemove(t *testing.T) {
 	})
 
 	assert.Equal(1, ll.PopBack())
+
+	ll.PushBack(15)
+	val, ok := ll.Remove(func(idx, value int) bool {
+		return value == 16
+	})
+
+	assert.Equal(false, ok)
+	assert.Equal(0, val)
+
+	val, ok = ll.Remove(func(idx, value int) bool {
+		return value == 15
+	})
+
+	assert.Equal(true, ok)
+	assert.Equal(15, val)
 }
 
 func TestLinkedList(t *testing.T) {
