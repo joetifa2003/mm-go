@@ -9,7 +9,7 @@ import (
 func TestTypedArena(t *testing.T) {
 	assert := assert.New(t)
 
-	arena := NewTypedArena[int](2)
+	arena := NewTypedArena[int](4)
 	defer arena.Free()
 
 	int1 := arena.Alloc()      // allocates 1 int from arena
@@ -21,6 +21,14 @@ func TestTypedArena(t *testing.T) {
 	// you can also take pointers from the slice
 	intPtr1 := &ints[0]
 	*intPtr1 = 15
+
+	assert.Panics(func() {
+		arena.AllocMany(10) // bigger than chunk size
+	})
+
+	arena.AllocMany(4) // creates a new chunk to fit in new values
+
+	arena.Alloc() // also creates a new chunk to fit in new values
 
 	assert.Equal(1, *int1)
 	assert.Equal(2, len(ints))

@@ -130,6 +130,9 @@ func TestAlloc(t *testing.T) {
 
 	*ptr = 15
 	assert.Equal(15, *ptr)
+
+	ptr2 := Alloc[[1e3]int]() // creates large array to make malloc mmap new chunk
+	defer Free(ptr2)
 }
 
 func TestReallocate(t *testing.T) {

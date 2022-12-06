@@ -1,13 +1,12 @@
 package mm
 
 import (
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-const LOOP_TIMES = 1500
+const LOOP_TIMES = 500
 
 func BenchmarkSlice(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -21,8 +20,6 @@ func BenchmarkSlice(b *testing.B) {
 			// Pop
 			numbers = numbers[:len(numbers)-1]
 		}
-
-		runtime.GC()
 	}
 }
 
@@ -39,7 +36,6 @@ func BenchmarkVector(b *testing.B) {
 		}
 
 		numbersVec.Free()
-		runtime.GC()
 	}
 }
 
@@ -59,6 +55,12 @@ func TestVector(t *testing.T) {
 	assert.Equal(3, v.Pop())
 	assert.Equal(2, v.Pop())
 	assert.Equal(1, v.Pop())
+
+	v.Push(1)
+	v.Push(2)
+
+	assert.Equal(1, v.At(0))
+	assert.Equal(2, v.At(1))
 }
 
 func TestVectorInit(t *testing.T) {
