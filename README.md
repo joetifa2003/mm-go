@@ -10,10 +10,38 @@ and this is where mm-go comes in to play.
   - [Before using mm-go](#before-using-mm-go)
   - [Installing](#installing)
   - [TypedArena (recommended)](#typedarena-recommended)
-  - [Vector](#vector)
   - [Alloc/Free](#allocfree)
   - [AllocMany/FreeMany](#allocmanyfreemany)
   - [ReAlloc](#realloc)
+  - [Vector](#vector)
+    - [Methods](#methods)
+      - [NewVector](#newvector)
+      - [InitVector](#initvector)
+      - [InitVector](#initvector-1)
+      - [Push](#push)
+      - [Pop](#pop)
+      - [Len](#len)
+      - [Cap](#cap)
+      - [Slice](#slice)
+      - [Last](#last)
+      - [At](#at)
+      - [Free](#free)
+  - [Linked List](#linked-list)
+    - [Methods](#methods-1)
+      - [NewLinkedList](#newlinkedlist)
+      - [PushBack](#pushback)
+      - [PushFront](#pushfront)
+      - [PopBack](#popback)
+      - [PopFront](#popfront)
+      - [ForEach](#foreach)
+      - [At](#at-1)
+      - [RemoveAt](#removeat)
+      - [Remove](#remove)
+      - [RemoveAll](#removeall)
+      - [FindIndex](#findindex)
+      - [FindIndexes](#findindexes)
+      - [Len](#len-1)
+      - [Free](#free-1)
   - [Benchmarks](#benchmarks)
 
 ## Before using mm-go
@@ -23,6 +51,8 @@ and this is where mm-go comes in to play.
 -   Before considering using this try to optimize your program to use less pointers, as golang GC most of the time performs worse when there is a lot of pointers, if you can't use this lib.
 -   Manual memory management provides better performance (most of the time) but you are 100% responsible for managing it (bugs, segfaults, use after free, double free, ....)
 -   Don't mix Manually and Managed memory (example if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead)
+-   All data structures provided by the package are manually managed and thus can be safely included in manually managed structs without the GC freeing them, but you have to free them yourself!
+-   Check the docs, test files and read the README.
 
 ## Installing
 
@@ -57,54 +87,6 @@ assert.Equal(1, *int1)
 assert.Equal(2, len(ints))
 assert.Equal(15, ints[0])
 assert.Equal(3, ints[1])
-```
-
-## Vector
-
-You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct.
-
-```go
-v := mm.NewVector[int]()
-defer v.Free()
-
-v.Push(1)
-v.Push(2)
-v.Push(3)
-
-assert.Equal(3, v.Len())
-assert.Equal(4, v.Cap())
-assert.Equal([]int{1, 2, 3}, v.Slice())
-assert.Equal(3, v.Pop())
-assert.Equal(2, v.Pop())
-assert.Equal(1, v.Pop())
-```
-
-```go
-v := mm.NewVector[int](5)
-defer v.Free()
-
-assert.Equal(5, v.Len())
-assert.Equal(5, v.Cap())
-```
-
-```go
-v := mm.NewVector[int](5, 6)
-defer v.Free()
-
-assert.Equal(5, v.Len())
-assert.Equal(6, v.Cap())
-```
-
-```go
-v := mm.InitVector(1, 2, 3)
-defer v.Free()
-
-assert.Equal(3, v.Len())
-assert.Equal(3, v.Cap())
-
-assert.Equal(3, v.Pop())
-assert.Equal(2, v.Pop())
-assert.Equal(1, v.Pop())
 ```
 
 ## Alloc/Free
@@ -157,6 +139,247 @@ allocated = mm.Reallocate(allocated, 3)
 assert.Equal(3, len(allocated))
 assert.Equal(15, allocated[0]) // data after reallocation stays the same
 mm.FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
+```
+
+## Vector
+
+A contiguous growable array type.
+You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct.
+
+```go
+v := mm.NewVector[int]()
+defer v.Free()
+
+v.Push(1)
+v.Push(2)
+v.Push(3)
+
+assert.Equal(3, v.Len())
+assert.Equal(4, v.Cap())
+assert.Equal([]int{1, 2, 3}, v.Slice())
+assert.Equal(3, v.Pop())
+assert.Equal(2, v.Pop())
+assert.Equal(1, v.Pop())
+```
+
+```go
+v := mm.NewVector[int](5)
+defer v.Free()
+
+assert.Equal(5, v.Len())
+assert.Equal(5, v.Cap())
+```
+
+```go
+v := mm.NewVector[int](5, 6)
+defer v.Free()
+
+assert.Equal(5, v.Len())
+assert.Equal(6, v.Cap())
+```
+
+```go
+v := mm.InitVector(1, 2, 3)
+defer v.Free()
+
+assert.Equal(3, v.Len())
+assert.Equal(3, v.Cap())
+
+assert.Equal(3, v.Pop())
+assert.Equal(2, v.Pop())
+assert.Equal(1, v.Pop())
+```
+
+### Methods
+
+#### NewVector
+
+```go
+// NewVector creates a new empty vector, if args not provided
+// it will create an empty vector, if only one arg is provided
+// it will init a vector with len and cap equal to the provided arg,
+// if two args are provided it will init a vector with len = args[0] cap = args[1]
+func NewVector[T any](args ...int) *Vector[T]
+```
+
+#### InitVector
+
+```go
+// InitVector initializes a new vector with the T elements provided and sets
+// it's len and cap to len(values)
+func InitVector[T any](values ...T) *Vector[T]
+```
+
+#### InitVector
+
+```go
+// InitVector initializes a new vector with the T elements provided and sets
+// it's len and cap to len(values)
+func InitVector[T any](values ...T) *Vector[T]
+```
+
+#### Push
+
+```go
+// Push pushes value T to the vector, grows if needed.
+func (v *Vector[T]) Push(value T)
+```
+
+#### Pop
+
+```go
+// Pop pops value T from the vector and returns it
+func (v *Vector[T]) Pop() T
+```
+
+#### Len
+
+```go
+// Len gets vector length
+func (v *Vector[T]) Len() int
+```
+
+#### Cap
+
+```go
+// Cap gets vector capacity (underling memory length).
+func (v *Vector[T]) Cap() int
+```
+
+#### Slice
+
+```go
+// Slice gets a slice representing the vector
+// CAUTION: don't append to this slice, this is only used
+// if you want to loop on the vec elements
+func (v *Vector[T]) Slice() []T
+```
+
+#### Last
+
+```go
+// Last gets the last element from a vector
+func (v *Vector[T]) Last() T
+```
+
+#### At
+
+```go
+// At gets element T at specified index
+func (v *Vector[T]) At(idx int) T
+```
+
+#### Free
+
+```go
+// Free deallocats the vector
+func (v *Vector[T]) Free()
+```
+
+## Linked List
+
+LinkedList a doubly-linked list.
+Note: can be a lot slower than Vector but sometimes faster in specific use cases
+
+### Methods
+
+#### NewLinkedList
+
+```go
+// NewLinkedList creates a new linked list.
+func NewLinkedList[T any]() *LinkedList[T]
+```
+
+#### PushBack
+
+```go
+// PushBack pushes value T to the back of the linked list.
+func (ll *LinkedList[T]) PushBack(value T)
+```
+
+#### PushFront
+
+```go
+// PushFront pushes value T to the back of the linked list.
+func (ll *LinkedList[T]) PushFront(value T)
+```
+
+#### PopBack
+
+```go
+// PopBack pops and returns value T from the back of the linked list.
+func (ll *LinkedList[T]) PopBack() T
+```
+
+#### PopFront
+
+```go
+// PopFront pops and returns value T from the front of the linked list.
+func (ll *LinkedList[T]) PopFront() T
+```
+
+#### ForEach
+
+```go
+// ForEach iterates through the linked list.
+func (ll *LinkedList[T]) ForEach(f func(idx int, value T))
+```
+
+#### At
+
+```go
+// At gets value T at idx.
+func (ll *LinkedList[T]) At(idx int) T
+```
+
+#### RemoveAt
+
+```go
+// RemoveAt removes value T at specified index and returns it.
+func (ll *LinkedList[T]) RemoveAt(idx int) T
+```
+
+#### Remove
+
+```go
+// Remove removes the first value T that pass the test implemented by the provided function.
+// if the test function succeeded it will return the value and true
+func (ll *LinkedList[T]) Remove(f func(idx int, value T) bool) (value T, ok bool)
+```
+
+#### RemoveAll
+
+```go
+// RemoveAll removes all values of T that pass the test implemented by the provided function.
+func (ll *LinkedList[T]) RemoveAll(f func(idx int, value T) bool) []T
+```
+
+#### FindIndex
+
+```go
+// FindIndex returns the first index of value T that pass the test implemented by the provided function.
+func (ll *LinkedList[T]) FindIndex(f func(value T) bool) (idx int, ok bool)
+```
+
+#### FindIndexes
+
+```go
+// FindIndex returns all indexes of value T that pass the test implemented by the provided function.
+func (ll *LinkedList[T]) FindIndexes(f func(value T) bool) []int
+```
+
+#### Len
+
+```go
+// Len gets linked list length.
+func (ll *LinkedList[T]) Len() int
+```
+
+#### Free
+
+```go
+// Free frees the linked list.
+func (ll *LinkedList[T]) Free()
 ```
 
 ## Benchmarks

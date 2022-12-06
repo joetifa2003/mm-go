@@ -73,7 +73,7 @@ func (ll *LinkedList[T]) PushFront(value T) {
 	ll.length++
 }
 
-// PushFront pops and returns value T from the back of the linked list.
+// PopBack pops and returns value T from the back of the linked list.
 func (ll *LinkedList[T]) PopBack() T {
 	if ll.length == 0 {
 		panic(popEmptyMsg)
@@ -93,7 +93,7 @@ func (ll *LinkedList[T]) PopBack() T {
 	return value
 }
 
-// PushFront pops and returns value T from the front of the linked list.
+// PopFront pops and returns value T from the front of the linked list.
 func (ll *LinkedList[T]) PopFront() T {
 	if ll.length == 0 {
 		panic(popEmptyMsg)
@@ -169,6 +169,7 @@ func (ll *LinkedList[T]) RemoveAt(idx int) T {
 }
 
 // Remove removes the first value T that pass the test implemented by the provided function.
+// if the test succeeded it will return the value and true
 func (ll *LinkedList[T]) Remove(f func(idx int, value T) bool) (value T, ok bool) {
 	i := 0
 	currentNode := ll.head

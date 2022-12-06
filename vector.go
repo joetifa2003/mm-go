@@ -41,7 +41,7 @@ func InitVector[T any](values ...T) *Vector[T] {
 	return vector
 }
 
-// Push pushes T to the vector, grows if needed.
+// Push pushes value T to the vector, grows if needed.
 func (v *Vector[T]) Push(value T) {
 	if v.len == v.cap {
 		v.data = Reallocate(v.data, v.cap*2)
@@ -52,7 +52,7 @@ func (v *Vector[T]) Push(value T) {
 	v.len++
 }
 
-// Pop pops T from the vector
+// Pop pops value T from the vector and returns it
 func (v *Vector[T]) Pop() T {
 	v.len--
 	return v.data[v.len]
@@ -89,7 +89,7 @@ func (v *Vector[T]) At(idx int) T {
 	return v.data[idx]
 }
 
-// Deallocate deallocats the vector
+// Free deallocats the vector
 func (v *Vector[T]) Free() {
 	FreeMany(v.data)
 	Free(v)
