@@ -109,6 +109,66 @@ func benchMarkSuit(b *testing.B, f func(int)) {
 	}
 }
 
+type TreeNode struct {
+	value       int
+	left, right *TreeNode
+}
+
+func createTreeManaged(depth int) *TreeNode {
+	if depth != 0 {
+		return &TreeNode{
+			value: depth,
+			left:  createTreeManaged(depth - 1),
+			right: createTreeManaged(depth - 1),
+		}
+	}
+
+	return nil
+}
+
+func createTreeManual(depth int, arena *TypedArena[TreeNode]) *TreeNode {
+	if depth != 0 {
+		node := arena.Alloc()
+		node.left = createTreeManual(depth-1, arena)
+		node.right = createTreeManual(depth-1, arena)
+		return node
+	}
+
+	return nil
+}
+
+func sumBinaryTree(tree *TreeNode) int {
+	if tree.left == nil && tree.right == nil {
+		return tree.value
+	}
+
+	return sumBinaryTree(tree.left) + sumBinaryTree(tree.right)
+}
+
+func BenchmarkBinaryTree(b *testing.B) {
+	b.Run("managed", func(b *testing.B) {
+		for n := 0; n < b.N; n++ {
+			tree := createTreeManaged(25)
+			sumBinaryTree(tree)
+			runtime.GC()
+		}
+	})
+
+	b.Run("arena manual", func(b *testing.B) {
+		for _, chunkSize := range []int{10, 50, 100, 150} {
+			b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
+				for n := 0; n < b.N; n++ {
+					arena := NewTypedArena[TreeNode](chunkSize)
+					tree := createTreeManual(25, arena)
+					sumBinaryTree(tree)
+					arena.Free()
+					runtime.GC()
+				}
+			})
+		}
+	})
+}
+
 func TestAllocMany(t *testing.T) {
 	assert := assert.New(t)
 

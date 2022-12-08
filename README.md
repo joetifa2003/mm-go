@@ -47,11 +47,12 @@ and this is where mm-go comes in to play.
 ## Before using mm-go
 
 -   Golang doesn't have any way to manually allocate/free memory, so how does mm-go allocate/free?
-    It does so via a custom allocator (see malloc.go) using direct system calls.
+    It does so via cgo.
 -   Before considering using this try to optimize your program to use less pointers, as golang GC most of the time performs worse when there is a lot of pointers, if you can't use this lib.
 -   Manual memory management provides better performance (most of the time) but you are 100% responsible for managing it (bugs, segfaults, use after free, double free, ....)
 -   Don't mix Manually and Managed memory (example if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead)
 -   All data structures provided by the package are manually managed and thus can be safely included in manually managed structs without the GC freeing them, but you have to free them yourself!
+-   Try to minimize calls to cgo by preallocating (using Arena/AllocMany).
 -   Check the docs, test files and read the README.
 
 ## Installing
@@ -70,7 +71,7 @@ then you can call FreeArena and it will deallocate all chunks together.
 Using this will simplify memory management.
 
 ```go
-arena := mm.NewTypedArena[int](3)
+arena := mm.NewTypedArena[int](3) // 3 is the chunk size which gets preallocated, if you allocated more than 3 it will preallocate another chunk of 3 T
 defer arena.Free() // freeing the arena using defer to prevent leaks
 
 int1 := arena.Alloc()      // allocates 1 int from arena
