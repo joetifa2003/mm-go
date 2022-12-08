@@ -10,17 +10,22 @@ import (
 )
 
 var pageSize = os.Getpagesize()
+var bigChunkThreshold = 1000000 // 1mb
 
 // Blocks allocated from MMap
 type block struct {
 	data      []byte // The actual data to allocate from
+	usedBytes int
+	size      int
 	nextBlock *block // Pointer to the next block
+	prevBlock *block
 }
 
 // Metadata for each allocation
 type metadata struct {
-	size int
-	free int8 // 0 free 1 not free
+	size  int
+	free  int8 // 0 free 1 not free
+	block *block
 }
 
 var sizeOfBlockStruct = unsafe.Sizeof(block{})
@@ -50,6 +55,7 @@ func createBlock(size int) *block {
 		(*byte)(unsafe.Pointer(&bytes[sizeOfBlockStruct])),
 		blockSize-int(sizeOfBlockStruct),
 	)
+	block.size = blockSize
 
 	return block
 }
@@ -78,11 +84,13 @@ func malloc(size int) unsafe.Pointer {
 				if metaPtr.size == 0 {
 					// first time (free and size is zero)
 					metaPtr.size = size // sets the size to the wanted size
+					metaPtr.block = currentBlock
 				}
 
 				// checks if the size is greater than the wanted size
 				if metaPtr.size >= size {
 					metaPtr.free = 1 // make it not available
+					metaPtr.block.usedBytes += metaPtr.size
 
 					ptr := unsafe.Pointer(uintptr(unsafe.Pointer(metaPtr)) + sizeOfMetaStruct)
 
@@ -103,7 +111,9 @@ func malloc(size int) unsafe.Pointer {
 
 		// creates another block if the current one have no next block
 		if currentBlock.nextBlock == nil {
-			currentBlock.nextBlock = createBlock(size)
+			newBlock := createBlock(size)
+			newBlock.prevBlock = currentBlock
+			currentBlock.nextBlock = newBlock
 		}
 
 		// if the block is all occupied check the next block
@@ -127,6 +137,32 @@ func free(ptr unsafe.Pointer) {
 
 	// makes it available
 	metaData.free = 0
+	metaData.block.usedBytes -= metaData.size
+
+	// free the chunk if it's bigger than or equal the threshold
+	if metaData.block.usedBytes == 0 && metaData.block.size >= bigChunkThreshold {
+		if metaData.block == headBlock {
+			headBlock = nil
+		}
+
+		nextBlock := metaData.block.nextBlock
+		prevBlock := metaData.block.prevBlock
+		if prevBlock != nil {
+			prevBlock.nextBlock = nextBlock
+		}
+		if nextBlock != nil {
+			nextBlock.prevBlock = prevBlock
+		}
+
+		mmap := mmap.MMap(unsafe.Slice(
+			(*byte)(unsafe.Pointer(metaData.block)),
+			metaData.block.size,
+		))
+		err := mmap.Unmap()
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func realloc(ptr unsafe.Pointer, size int) unsafe.Pointer {

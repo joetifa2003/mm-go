@@ -146,3 +146,12 @@ func TestReallocate(t *testing.T) {
 	assert.Equal(15, allocated[0]) // data after reallocation stays the same
 	FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 }
+
+func TestUnmapChunk(t *testing.T) {
+	data1 := AllocMany[int](1e6)
+	data2 := AllocMany[int](1e6)
+	data3 := AllocMany[int](1e6)
+	FreeMany(data2)
+	FreeMany(data1)
+	FreeMany(data3)
+}
