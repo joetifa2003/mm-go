@@ -390,19 +390,19 @@ mm-go can sometimes be 5-10 times faster.
 ```
 name                                time/op
 
-Slice-2                             3.95µs ± 3%
-Vector-2                            4.61µs ± 4%
-LinkedList-2                         402µs ± 5%
-HeapManaged/node_count_10000-2       786µs ± 2%
-HeapManaged/node_count_100000-2     4.71ms ± 2%
-HeapManaged/node_count_10000000-2    879ms ± 8%
-HeapManaged/node_count_100000000-2   8.60s ± 4%
-Manual/node_count_10000-2            675µs ± 8%
-Manual/node_count_100000-2          1.03ms ± 5%
-Manual/node_count_10000000-2        59.4ms ± 1%
-Manual/node_count_100000000-2        551ms ± 1%
-ArenaManual/node_count_10000-2       623µs ± 4%
-ArenaManual/node_count_100000-2      933µs ± 5%
-ArenaManual/node_count_10000000-2   57.6ms ± 2%
-ArenaManual/node_count_100000000-2   542ms ± 3%
+Slice-2                             4.17µs ± 3%
+Vector-2                            4.70µs ± 1%
+LinkedList-2                         408µs ± 2%
+HeapManaged/node_count_10000-2       863µs ± 3%
+HeapManaged/node_count_100000-2     4.85ms ± 1%
+HeapManaged/node_count_10000000-2    881ms ±14%
+HeapManaged/node_count_100000000-2   8.54s ±12%
+Manual/node_count_10000-2            693µs ± 6%
+Manual/node_count_100000-2          2.49ms ± 4%
+Manual/node_count_10000000-2         196ms ± 4%
+Manual/node_count_100000000-2        2.05s ± 7%
+ArenaManual/node_count_10000-2       682µs ± 4%
+ArenaManual/node_count_100000-2     2.55ms ± 6%
+ArenaManual/node_count_10000000-2    197ms ± 3%
+ArenaManual/node_count_100000000-2   2.06s ± 9%
 ```
