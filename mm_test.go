@@ -155,7 +155,7 @@ func BenchmarkBinaryTree(b *testing.B) {
 	})
 
 	b.Run("arena manual", func(b *testing.B) {
-		for _, chunkSize := range []int{10, 50, 100, 150} {
+		for _, chunkSize := range []int{50, 100, 150, 250} {
 			b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					arena := NewTypedArena[TreeNode](chunkSize)
