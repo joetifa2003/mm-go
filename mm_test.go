@@ -145,28 +145,26 @@ func sumBinaryTree(tree *TreeNode) int {
 	return sumBinaryTree(tree.left) + sumBinaryTree(tree.right)
 }
 
-func BenchmarkBinaryTree(b *testing.B) {
-	b.Run("managed", func(b *testing.B) {
-		for n := 0; n < b.N; n++ {
-			tree := createTreeManaged(25)
-			sumBinaryTree(tree)
-			runtime.GC()
-		}
-	})
+func BenchmarkBinaryTreeManaged(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		tree := createTreeManaged(25)
+		sumBinaryTree(tree)
+		runtime.GC()
+	}
+}
 
-	b.Run("arena manual", func(b *testing.B) {
-		for _, chunkSize := range []int{50, 100, 150, 250} {
-			b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
-				for n := 0; n < b.N; n++ {
-					arena := NewTypedArena[TreeNode](chunkSize)
-					tree := createTreeManual(25, arena)
-					sumBinaryTree(tree)
-					arena.Free()
-					runtime.GC()
-				}
-			})
-		}
-	})
+func BenchmarkBinaryTreeArena(b *testing.B) {
+	for _, chunkSize := range []int{50, 100, 150, 250, 500} {
+		b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				arena := NewTypedArena[TreeNode](chunkSize)
+				tree := createTreeManual(25, arena)
+				sumBinaryTree(tree)
+				arena.Free()
+				runtime.GC()
+			}
+		})
+	}
 }
 
 func TestAllocMany(t *testing.T) {
