@@ -389,21 +389,28 @@ Check the test files and github actions for the benchmarks (linux, macos, window
 mm-go can sometimes be 5-10 times faster.
 
 ```
-name                                time/op
+Run go test -bench . -count 5 > out.txt && benchstat out.txt
 
-Slice-2                             4.17µs ± 3%
-Vector-2                            4.70µs ± 1%
-LinkedList-2                         408µs ± 2%
-HeapManaged/node_count_10000-2       863µs ± 3%
-HeapManaged/node_count_100000-2     4.85ms ± 1%
-HeapManaged/node_count_10000000-2    881ms ±14%
-HeapManaged/node_count_100000000-2   8.54s ±12%
-Manual/node_count_10000-2            693µs ± 6%
-Manual/node_count_100000-2          2.49ms ± 4%
-Manual/node_count_10000000-2         196ms ± 4%
-Manual/node_count_100000000-2        2.05s ± 7%
-ArenaManual/node_count_10000-2       682µs ± 4%
-ArenaManual/node_count_100000-2     2.55ms ± 6%
-ArenaManual/node_count_10000000-2    197ms ± 3%
-ArenaManual/node_count_100000000-2   2.06s ± 9%
+name                                      time/op
+
+Slice-2                                   2.70µs ± 8%
+Vector-2                                  4.18µs ± 0%
+LinkedList-2                               105µs ± 1%
+HeapManaged/node_count_10000-2             529µs ± 0%
+HeapManaged/node_count_100000-2           3.78ms ± 1%
+HeapManaged/node_count_10000000-2          698ms ± 1%
+HeapManaged/node_count_100000000-2         6.67s ± 6%
+Manual/node_count_10000-2                  247µs ± 1%
+Manual/node_count_100000-2                 594µs ± 0%
+Manual/node_count_10000000-2              89.0ms ± 1%
+Manual/node_count_100000000-2              886ms ± 0%
+ArenaManual/node_count_10000-2             248µs ± 1%
+ArenaManual/node_count_100000-2            599µs ± 6%
+ArenaManual/node_count_10000000-2         88.2ms ± 1%
+ArenaManual/node_count_100000000-2         872ms ± 1%
+BinaryTree/managed-2                       2.49s ± 6%
+BinaryTree/arena_manual/chunk_size_50-2    1.13s ±29%
+BinaryTree/arena_manual/chunk_size_100-2   1.10s ± 0%
+BinaryTree/arena_manual/chunk_size_150-2   793ms ± 6%
+BinaryTree/arena_manual/chunk_size_250-2   631ms ± 1%
 ```
