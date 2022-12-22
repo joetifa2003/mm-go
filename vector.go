@@ -89,7 +89,16 @@ func (v *Vector[T]) At(idx int) T {
 	return v.data[idx]
 }
 
-// Set gets element T at specified index
+// AtPtr gets element a pointer of T at specified index
+func (v *Vector[T]) AtPtr(idx int) *T {
+	if idx >= v.len {
+		panic(fmt.Sprintf("cannot index %d in a vector with length %d", idx, v.len))
+	}
+
+	return &v.data[idx]
+}
+
+// Set sets element T at specified index
 func (v *Vector[T]) Set(idx int, value T) {
 	if idx >= v.len {
 		panic(fmt.Sprintf("cannot set %d in a vector with length %d", idx, v.len))
