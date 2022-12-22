@@ -89,6 +89,15 @@ func (v *Vector[T]) At(idx int) T {
 	return v.data[idx]
 }
 
+// Set gets element T at specified index
+func (v *Vector[T]) Set(idx int, value T) {
+	if idx >= v.len {
+		panic(fmt.Sprintf("cannot set %d in a vector with length %d", idx, v.len))
+	}
+
+	v.data[idx] = value
+}
+
 // Free deallocats the vector
 func (v *Vector[T]) Free() {
 	FreeMany(v.data)
