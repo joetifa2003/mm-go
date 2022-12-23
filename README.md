@@ -49,6 +49,13 @@ and this is where mm-go comes in to play.
       - [Get](#get)
       - [GetPtr](#getptr)
       - [Free](#free-2)
+  - [String](#string)
+    - [Methods](#methods-3)
+      - [New](#new-2)
+      - [From](#from)
+      - [GetGoString](#getgostring)
+      - [AppendGoString](#appendgostring)
+      - [Free](#free-3)
   - [Benchmarks](#benchmarks)
 
 ## Before using mm-go
@@ -436,6 +443,56 @@ func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool)
 ```go
 // Free frees the Hashmap
 func (hm *Hashmap[K, V]) Free()
+```
+
+## String
+
+MMString is a manually manged string that is basically a \*Vector[rune]
+and contains all the methods of a vector plus additional helper functions
+
+```go
+type MMString struct {
+	*vector.Vector[rune]
+}
+```
+
+### Methods
+
+#### New
+
+```go
+// New create a new manually managed string
+func New() *MMString
+```
+
+#### From
+
+```go
+// From creates a new manually managed string,
+// And initialize it with a go string
+func From(input string) *MMString
+```
+
+#### GetGoString
+
+```go
+// GetGoString returns go string from manually managed string.
+// CAUTION: You also have to free the MMString
+func (s *MMString) GetGoString() string
+```
+
+#### AppendGoString
+
+```go
+// AppendGoString appends go string to manually managed string
+func (s *MMString) AppendGoString(input string)
+```
+
+#### Free
+
+```go
+// Free frees MMString
+func (s *MMString) Free()
 ```
 
 ## Benchmarks
