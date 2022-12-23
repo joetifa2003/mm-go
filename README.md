@@ -28,7 +28,7 @@ and this is where mm-go comes in to play.
       - [Free](#free)
   - [Linked List](#linked-list)
     - [Methods](#methods-1)
-      - [NewLinkedList](#newlinkedlist)
+      - [New](#new-1)
       - [PushBack](#pushback)
       - [PushFront](#pushfront)
       - [PopBack](#popback)
@@ -44,14 +44,14 @@ and this is where mm-go comes in to play.
       - [Free](#free-1)
   - [HashMap](#hashmap)
     - [Methods](#methods-2)
-      - [New](#new-1)
+      - [New](#new-2)
       - [Insert](#insert)
       - [Get](#get)
       - [GetPtr](#getptr)
       - [Free](#free-2)
   - [String](#string)
     - [Methods](#methods-3)
-      - [New](#new-2)
+      - [New](#new-3)
       - [From](#from)
       - [GetGoString](#getgostring)
       - [AppendGoString](#appendgostring)
@@ -297,7 +297,7 @@ Note: can be a lot slower than Vector but sometimes faster in specific use cases
 
 ### Methods
 
-#### NewLinkedList
+#### New
 
 ```go
 // New creates a new linked list.
