@@ -42,6 +42,13 @@ and this is where mm-go comes in to play.
       - [FindIndexes](#findindexes)
       - [Len](#len-1)
       - [Free](#free-1)
+  - [HashMap](#hashmap)
+    - [Methods](#methods-2)
+      - [New](#new-1)
+      - [Insert](#insert)
+      - [Get](#get)
+      - [GetPtr](#getptr)
+      - [Free](#free-2)
   - [Benchmarks](#benchmarks)
 
 ## Before using mm-go
@@ -380,6 +387,55 @@ func (ll *LinkedList[T]) Len() int
 ```go
 // Free frees the linked list.
 func (ll *LinkedList[T]) Free()
+```
+
+## HashMap
+
+Manually managed hashmap, keys can be hashmap.String, hashmap.Int or any type that implements the hashmap.Hashable interface
+
+```go
+type Hashable interface {
+	comparable
+	Hash() uint32
+}
+```
+
+### Methods
+
+#### New
+
+```go
+// New creates a new Hashmap with key of type K and value of type V
+func New[K Hashable, V any]() *Hashmap[K, V]
+```
+
+#### Insert
+
+```go
+// Insert inserts a new value V if key K doesn't exist,
+// Otherwise update the key K with value V
+func (hm *Hashmap[K, V]) Insert(key K, value V)
+```
+
+#### Get
+
+```go
+// Get takes key K and return value V
+func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool)
+```
+
+#### GetPtr
+
+```go
+// GetPtr takes key K and return a pointer to value V
+func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool)
+```
+
+#### Free
+
+```go
+// Free frees the Hashmap
+func (hm *Hashmap[K, V]) Free()
 ```
 
 ## Benchmarks
