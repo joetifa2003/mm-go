@@ -78,13 +78,19 @@ go get github.com/joetifa2003/mm-go
 
 ## Packages
 
-`mm` - basic generic memory management functions
-`typedarena` - contains TypedArena which allocates many objects and free them all at once
-`vector` - contains a manually managed Vector implementation
-`linkedlist` - contains a manually managed Linkedlist implementation
-`hashmap` - contains a manually managed Hashmap implementation
-`mmstring` - contains a manually managed string implementation
-`malloc` - contains wrappers to raw C malloc and free
+`mm` - basic generic memory management functions.
+
+`typedarena` - contains TypedArena which allocates many objects and free them all at once.
+
+`vector` - contains a manually managed Vector implementation.
+
+`linkedlist` - contains a manually managed Linkedlist implementation.
+
+`hashmap` - contains a manually managed Hashmap implementation.
+
+`mmstring` - contains a manually managed string implementation.
+
+`malloc` - contains wrappers to raw C malloc and free.
 
 ## typedarena
 
@@ -514,26 +520,22 @@ mm-go can sometimes be 5-10 times faster.
 ```
 Run go test -bench . -count 5 > out.txt && benchstat out.txt
 
-name                                      time/op
-
-Slice-2                                   2.70µs ± 8%
-Vector-2                                  4.18µs ± 0%
-LinkedList-2                               105µs ± 1%
-HeapManaged/node_count_10000-2             529µs ± 0%
-HeapManaged/node_count_100000-2           3.78ms ± 1%
-HeapManaged/node_count_10000000-2          698ms ± 1%
-HeapManaged/node_count_100000000-2         6.67s ± 6%
-Manual/node_count_10000-2                  247µs ± 1%
-Manual/node_count_100000-2                 594µs ± 0%
-Manual/node_count_10000000-2              89.0ms ± 1%
-Manual/node_count_100000000-2              886ms ± 0%
-ArenaManual/node_count_10000-2             248µs ± 1%
-ArenaManual/node_count_100000-2            599µs ± 6%
-ArenaManual/node_count_10000000-2         88.2ms ± 1%
-ArenaManual/node_count_100000000-2         872ms ± 1%
-BinaryTree/managed-2                       2.49s ± 6%
-BinaryTree/arena_manual/chunk_size_50-2    1.13s ±29%
-BinaryTree/arena_manual/chunk_size_100-2   1.10s ± 0%
-BinaryTree/arena_manual/chunk_size_150-2   793ms ± 6%
-BinaryTree/arena_manual/chunk_size_250-2   631ms ± 1%
+name                                time/op
+HeapManaged/node_count_10000-2       633µs ± 2%
+HeapManaged/node_count_100000-2     4.57ms ± 4%
+HeapManaged/node_count_10000000-2    816ms ± 2%
+HeapManaged/node_count_100000000-2   7.85s ± 1%
+Manual/node_count_10000-2            303µs ± 3%
+Manual/node_count_100000-2           742µs ± 4%
+Manual/node_count_10000000-2         105ms ± 3%
+Manual/node_count_100000000-2        1.01s ± 3%
+ArenaManual/node_count_10000-2       299µs ± 3%
+ArenaManual/node_count_100000-2      708µs ± 5%
+ArenaManual/node_count_10000000-2    100ms ± 1%
+ArenaManual/node_count_100000000-2   987ms ± 1%
+BinaryTreeManaged-2                  3.01s ± 3%
+BinaryTreeArena/chunk_size_50-2      1.38s ±27%
+BinaryTreeArena/chunk_size_100-2     975ms ± 1%
+BinaryTreeArena/chunk_size_150-2     913ms ±14%
+BinaryTreeArena/chunk_size_250-2     748ms ± 7%
 ```
