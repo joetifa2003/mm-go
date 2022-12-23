@@ -1,6 +1,10 @@
-package mm
+package linkedlist
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go"
+)
 
 var popEmptyMsg = "cannot pop empty linked list"
 
@@ -18,15 +22,15 @@ type LinkedList[T any] struct {
 	length int
 }
 
-// NewLinkedList creates a new linked list.
-func NewLinkedList[T any]() *LinkedList[T] {
-	linkedList := Alloc[LinkedList[T]]()
+// New creates a new linked list.
+func New[T any]() *LinkedList[T] {
+	linkedList := mm.Alloc[LinkedList[T]]()
 
 	return linkedList
 }
 
 func (ll *LinkedList[T]) init(value T) {
-	ll.head = Alloc[linkedListNode[T]]()
+	ll.head = mm.Alloc[linkedListNode[T]]()
 	ll.head.value = value
 	ll.tail = ll.head
 	ll.length++
@@ -34,7 +38,7 @@ func (ll *LinkedList[T]) init(value T) {
 
 func (ll *LinkedList[T]) popLast() T {
 	value := ll.tail.value
-	Free(ll.tail)
+	mm.Free(ll.tail)
 	ll.tail = nil
 	ll.head = nil
 	ll.length--
@@ -49,7 +53,7 @@ func (ll *LinkedList[T]) PushBack(value T) {
 		return
 	}
 
-	newNode := Alloc[linkedListNode[T]]()
+	newNode := mm.Alloc[linkedListNode[T]]()
 	newNode.value = value
 	newNode.prev = ll.tail
 	ll.tail.next = newNode
@@ -65,7 +69,7 @@ func (ll *LinkedList[T]) PushFront(value T) {
 		return
 	}
 
-	newNode := Alloc[linkedListNode[T]]()
+	newNode := mm.Alloc[linkedListNode[T]]()
 	newNode.value = value
 	newNode.next = ll.head
 	ll.head.prev = newNode
@@ -86,7 +90,7 @@ func (ll *LinkedList[T]) PopBack() T {
 	value := ll.tail.value
 	newTail := ll.tail.prev
 	newTail.next = nil
-	Free(ll.tail)
+	mm.Free(ll.tail)
 	ll.tail = newTail
 	ll.length--
 
@@ -106,7 +110,7 @@ func (ll *LinkedList[T]) PopFront() T {
 	value := ll.head.value
 	newHead := ll.head.next
 	newHead.prev = nil
-	Free(ll.head)
+	mm.Free(ll.head)
 	ll.head = newHead
 	ll.length--
 
@@ -163,7 +167,7 @@ func (ll *LinkedList[T]) RemoveAt(idx int) T {
 	prevNode.next = nextNode
 	ll.length--
 
-	Free(node)
+	mm.Free(node)
 
 	return value
 }
@@ -258,9 +262,9 @@ func (ll *LinkedList[T]) Free() {
 
 	for currentNode != nil {
 		nextNode := currentNode.next
-		Free(currentNode)
+		mm.Free(currentNode)
 		currentNode = nextNode
 	}
 
-	Free(ll)
+	mm.Free(ll)
 }

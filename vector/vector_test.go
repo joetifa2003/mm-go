@@ -1,15 +1,16 @@
-package mm
+package vector_test
 
 import (
 	"testing"
 
+	"github.com/joetifa2003/mm-go/vector"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestVector(t *testing.T) {
 	assert := assert.New(t)
 
-	v := NewVector[int]()
+	v := vector.New[int]()
 	defer v.Free()
 
 	v.Push(1)
@@ -37,7 +38,7 @@ func TestVectorInit(t *testing.T) {
 	t.Run("Init with no args", func(t *testing.T) {
 		assert := assert.New(t)
 
-		v := NewVector[int]()
+		v := vector.New[int]()
 		defer v.Free()
 
 		assert.Equal(0, v.Len())
@@ -47,7 +48,7 @@ func TestVectorInit(t *testing.T) {
 	t.Run("Init with one arg", func(t *testing.T) {
 		assert := assert.New(t)
 
-		v := NewVector[int](5)
+		v := vector.New[int](5)
 		defer v.Free()
 
 		assert.Equal(5, v.Len())
@@ -57,7 +58,7 @@ func TestVectorInit(t *testing.T) {
 	t.Run("Init with two args", func(t *testing.T) {
 		assert := assert.New(t)
 
-		v := NewVector[int](5, 6)
+		v := vector.New[int](5, 6)
 		defer v.Free()
 
 		assert.Equal(5, v.Len())
@@ -67,7 +68,7 @@ func TestVectorInit(t *testing.T) {
 	t.Run("Init vector with slice", func(t *testing.T) {
 		assert := assert.New(t)
 
-		v := InitVector(1, 2, 3)
+		v := vector.Init(1, 2, 3)
 		defer v.Free()
 
 		assert.Equal(3, v.Len())

@@ -1,10 +1,12 @@
-package mm
+package mm_test
 
 import (
 	"fmt"
 	"runtime"
 	"testing"
 
+	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/typedarena"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,7 +44,7 @@ func BenchmarkHeapManaged(b *testing.B) {
 }
 
 func manual(nodes int) {
-	allocatedNodes := AllocMany[Node](nodes)
+	allocatedNodes := mm.AllocMany[Node](nodes)
 
 	for j := 0; j < nodes; j++ {
 		var prev *Node
@@ -61,7 +63,7 @@ func manual(nodes int) {
 		}
 	}
 
-	FreeMany(allocatedNodes)
+	mm.FreeMany(allocatedNodes)
 	runtime.GC()
 }
 
@@ -70,7 +72,7 @@ func BenchmarkManual(b *testing.B) {
 }
 
 func arenaManual(nodes int) {
-	arena := NewTypedArena[Node](nodes)
+	arena := typedarena.New[Node](nodes)
 	allocatedNodes := arena.AllocMany(nodes)
 
 	for j := 0; j < nodes; j++ {
@@ -126,7 +128,7 @@ func createTreeManaged(depth int) *TreeNode {
 	return nil
 }
 
-func createTreeManual(depth int, arena *TypedArena[TreeNode]) *TreeNode {
+func createTreeManual(depth int, arena *typedarena.TypedArena[TreeNode]) *TreeNode {
 	if depth != 0 {
 		node := arena.Alloc()
 		node.left = createTreeManual(depth-1, arena)
@@ -157,7 +159,7 @@ func BenchmarkBinaryTreeArena(b *testing.B) {
 	for _, chunkSize := range []int{50, 100, 150, 250, 500} {
 		b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
-				arena := NewTypedArena[TreeNode](chunkSize)
+				arena := typedarena.New[TreeNode](chunkSize)
 				tree := createTreeManual(25, arena)
 				sumBinaryTree(tree)
 				arena.Free()
@@ -170,8 +172,8 @@ func BenchmarkBinaryTreeArena(b *testing.B) {
 func TestAllocMany(t *testing.T) {
 	assert := assert.New(t)
 
-	allocated := AllocMany[int](2) // allocates 2 ints and returns it as a slice of ints with length 2
-	defer FreeMany(allocated)      // it's recommended to make sure the data gets deallocated (defer recommended to prevent leaks)
+	allocated := mm.AllocMany[int](2) // allocates 2 ints and returns it as a slice of ints with length 2
+	defer mm.FreeMany(allocated)      // it's recommended to make sure the data gets deallocated (defer recommended to prevent leaks)
 	assert.Equal(2, len(allocated))
 	allocated[0] = 15    // changes the data in the slice (aka the heap)
 	ptr := &allocated[0] // takes a pointer to the data in the heap
@@ -183,33 +185,33 @@ func TestAllocMany(t *testing.T) {
 func TestAlloc(t *testing.T) {
 	assert := assert.New(t)
 
-	ptr := Alloc[int]() // allocates a single int and returns a ptr to it
-	defer Free(ptr)     // frees the int (defer recommended to prevent leaks)
+	ptr := mm.Alloc[int]() // allocates a single int and returns a ptr to it
+	defer mm.Free(ptr)     // frees the int (defer recommended to prevent leaks)
 
 	*ptr = 15
 	assert.Equal(15, *ptr)
 
-	ptr2 := Alloc[[1e3]int]() // creates large array to make malloc mmap new chunk
-	defer Free(ptr2)
+	ptr2 := mm.Alloc[[1e3]int]() // creates large array to make malloc mmap new chunk
+	defer mm.Free(ptr2)
 }
 
 func TestReallocate(t *testing.T) {
 	assert := assert.New(t)
 
-	allocated := AllocMany[int](2) // allocates 2 int and returns it as a slice of ints with length 2
+	allocated := mm.AllocMany[int](2) // allocates 2 int and returns it as a slice of ints with length 2
 	allocated[0] = 15
 	assert.Equal(2, len(allocated))
-	allocated = Reallocate(allocated, 3)
+	allocated = mm.Reallocate(allocated, 3)
 	assert.Equal(3, len(allocated))
 	assert.Equal(15, allocated[0]) // data after reallocation stays the same
-	FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
+	mm.FreeMany(allocated)         // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 }
 
 func TestUnmapChunk(t *testing.T) {
-	data1 := AllocMany[int](1e6)
-	data2 := AllocMany[int](1e6)
-	data3 := AllocMany[int](1e6)
-	FreeMany(data2)
-	FreeMany(data1)
-	FreeMany(data3)
+	data1 := mm.AllocMany[int](1e6)
+	data2 := mm.AllocMany[int](1e6)
+	data3 := mm.AllocMany[int](1e6)
+	mm.FreeMany(data2)
+	mm.FreeMany(data1)
+	mm.FreeMany(data3)
 }

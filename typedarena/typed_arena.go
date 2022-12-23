@@ -1,4 +1,9 @@
-package mm
+package typedarena
+
+import (
+	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/vector"
+)
 
 type typedChunk[T any] struct {
 	data []T
@@ -6,8 +11,8 @@ type typedChunk[T any] struct {
 }
 
 func newChunk[T any](size int) *typedChunk[T] {
-	chunk := Alloc[typedChunk[T]]()
-	chunk.data = AllocMany[T](size)
+	chunk := mm.Alloc[typedChunk[T]]()
+	chunk.data = mm.AllocMany[T](size)
 
 	return chunk
 }
@@ -24,25 +29,25 @@ func (c *typedChunk[T]) AllocMany(n int) []T {
 }
 
 func (c *typedChunk[T]) Free() {
-	FreeMany(c.data)
-	Free(c)
+	mm.FreeMany(c.data)
+	mm.Free(c)
 }
 
 // TypedArena is a growable typed arena
 type TypedArena[T any] struct {
-	chunks    *Vector[*typedChunk[T]]
+	chunks    *vector.Vector[*typedChunk[T]]
 	chunkSize int
 }
 
-// NewTypedArena creates a typed arena with the specified chunk size.
+// New creates a typed arena with the specified chunk size.
 // a chunk is the the unit of the arena, if T is int for example and the
 // chunk size is 5, then each chunk is going to hold 5 ints. And if the
 // chunk is filled it will allocate another chunk that can hold 5 ints.
 // then you can call FreeArena and it will deallocate all chunks together
-func NewTypedArena[T any](chunkSize int) *TypedArena[T] {
-	tArena := Alloc[TypedArena[T]]()
+func New[T any](chunkSize int) *TypedArena[T] {
+	tArena := mm.Alloc[TypedArena[T]]()
 	tArena.chunkSize = chunkSize
-	tArena.chunks = NewVector[*typedChunk[T]]()
+	tArena.chunks = vector.New[*typedChunk[T]]()
 
 	firstChunk := newChunk[T](chunkSize)
 	tArena.chunks.Push(firstChunk)
@@ -86,5 +91,5 @@ func (ta *TypedArena[T]) Free() {
 		c.Free()
 	}
 	ta.chunks.Free()
-	Free(ta)
+	mm.Free(ta)
 }

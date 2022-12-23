@@ -1,6 +1,10 @@
-package mm
+package vector
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go"
+)
 
 // Vector a contiguous growable array type
 type Vector[T any] struct {
@@ -10,19 +14,19 @@ type Vector[T any] struct {
 }
 
 func createVector[T any](len int, cap int) *Vector[T] {
-	vector := Alloc[Vector[T]]()
+	vector := mm.Alloc[Vector[T]]()
 	vector.cap = cap
 	vector.len = len
-	vector.data = AllocMany[T](vector.cap)
+	vector.data = mm.AllocMany[T](vector.cap)
 
 	return vector
 }
 
-// NewVector creates a new empty vector, if args not provided
+// New creates a new empty vector, if args not provided
 // it will create an empty vector, if only one arg is provided
 // it will init a vector with len and cap equal to the provided arg,
 // if two args are provided it will init a vector with len = args[0] cap = args[1]
-func NewVector[T any](args ...int) *Vector[T] {
+func New[T any](args ...int) *Vector[T] {
 	switch len(args) {
 	case 0:
 		return createVector[T](0, 1)
@@ -33,9 +37,9 @@ func NewVector[T any](args ...int) *Vector[T] {
 	}
 }
 
-// InitVector initializes a new vector with the T elements provided and sets
+// Init initializes a new vector with the T elements provided and sets
 // it's len and cap to len(values)
-func InitVector[T any](values ...T) *Vector[T] {
+func Init[T any](values ...T) *Vector[T] {
 	vector := createVector[T](len(values), len(values))
 	copy(vector.data, values)
 	return vector
@@ -44,7 +48,7 @@ func InitVector[T any](values ...T) *Vector[T] {
 // Push pushes value T to the vector, grows if needed.
 func (v *Vector[T]) Push(value T) {
 	if v.len == v.cap {
-		v.data = Reallocate(v.data, v.cap*2)
+		v.data = mm.Reallocate(v.data, v.cap*2)
 		v.cap *= 2
 	}
 
@@ -109,6 +113,6 @@ func (v *Vector[T]) Set(idx int, value T) {
 
 // Free deallocats the vector
 func (v *Vector[T]) Free() {
-	FreeMany(v.data)
-	Free(v)
+	mm.FreeMany(v.data)
+	mm.Free(v)
 }
