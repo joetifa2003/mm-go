@@ -15,9 +15,8 @@ and this is where mm-go comes in to play.
   - [ReAlloc](#realloc)
   - [Vector](#vector)
     - [Methods](#methods)
-      - [NewVector](#newvector)
-      - [InitVector](#initvector)
-      - [InitVector](#initvector-1)
+      - [New](#new)
+      - [Init](#init)
       - [Push](#push)
       - [Pop](#pop)
       - [Len](#len)
@@ -25,6 +24,7 @@ and this is where mm-go comes in to play.
       - [Slice](#slice)
       - [Last](#last)
       - [At](#at)
+      - [AtPtr](#atptr)
       - [Free](#free)
   - [Linked List](#linked-list)
     - [Methods](#methods-1)
@@ -71,7 +71,7 @@ then you can call FreeArena and it will deallocate all chunks together.
 Using this will simplify memory management.
 
 ```go
-arena := mm.NewTypedArena[int](3) // 3 is the chunk size which gets preallocated, if you allocated more than 3 it will preallocate another chunk of 3 T
+arena := typedarena.New[int](3) // 3 is the chunk size which gets preallocated, if you allocated more than 3 it will preallocate another chunk of 3 T
 defer arena.Free() // freeing the arena using defer to prevent leaks
 
 int1 := arena.Alloc()      // allocates 1 int from arena
@@ -148,7 +148,7 @@ A contiguous growable array type.
 You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct.
 
 ```go
-v := mm.NewVector[int]()
+v := vector.New[int]()
 defer v.Free()
 
 v.Push(1)
@@ -164,7 +164,7 @@ assert.Equal(1, v.Pop())
 ```
 
 ```go
-v := mm.NewVector[int](5)
+v := vector.New[int](5)
 defer v.Free()
 
 assert.Equal(5, v.Len())
@@ -172,7 +172,7 @@ assert.Equal(5, v.Cap())
 ```
 
 ```go
-v := mm.NewVector[int](5, 6)
+v := vector.New[int](5, 6)
 defer v.Free()
 
 assert.Equal(5, v.Len())
@@ -180,7 +180,7 @@ assert.Equal(6, v.Cap())
 ```
 
 ```go
-v := mm.InitVector(1, 2, 3)
+v := vector.Init(1, 2, 3)
 defer v.Free()
 
 assert.Equal(3, v.Len())
@@ -193,30 +193,22 @@ assert.Equal(1, v.Pop())
 
 ### Methods
 
-#### NewVector
+#### New
 
 ```go
-// NewVector creates a new empty vector, if args not provided
+// New creates a new empty vector, if args not provided
 // it will create an empty vector, if only one arg is provided
 // it will init a vector with len and cap equal to the provided arg,
 // if two args are provided it will init a vector with len = args[0] cap = args[1]
-func NewVector[T any](args ...int) *Vector[T]
+func New[T any](args ...int) *Vector[T]
 ```
 
-#### InitVector
+#### Init
 
 ```go
-// InitVector initializes a new vector with the T elements provided and sets
+// Init initializes a new vector with the T elements provided and sets
 // it's len and cap to len(values)
-func InitVector[T any](values ...T) *Vector[T]
-```
-
-#### InitVector
-
-```go
-// InitVector initializes a new vector with the T elements provided and sets
-// it's len and cap to len(values)
-func InitVector[T any](values ...T) *Vector[T]
+func Init[T any](values ...T) *Vector[T]
 ```
 
 #### Push
@@ -270,6 +262,13 @@ func (v *Vector[T]) Last() T
 func (v *Vector[T]) At(idx int) T
 ```
 
+#### AtPtr
+
+```go
+// AtPtr gets element a pointer of T at specified index
+func (v *Vector[T]) AtPtr(idx int) *T
+```
+
 #### Free
 
 ```go
@@ -287,8 +286,8 @@ Note: can be a lot slower than Vector but sometimes faster in specific use cases
 #### NewLinkedList
 
 ```go
-// NewLinkedList creates a new linked list.
-func NewLinkedList[T any]() *LinkedList[T]
+// New creates a new linked list.
+func New[T any]() *LinkedList[T]
 ```
 
 #### PushBack
