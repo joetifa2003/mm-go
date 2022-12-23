@@ -9,11 +9,12 @@ and this is where mm-go comes in to play.
 - [mm-go Generic manual memory management for golang](#mm-go-generic-manual-memory-management-for-golang)
   - [Before using mm-go](#before-using-mm-go)
   - [Installing](#installing)
-  - [TypedArena (recommended)](#typedarena-recommended)
+  - [Packages](#packages)
+  - [typedarena](#typedarena)
   - [Alloc/Free](#allocfree)
   - [AllocMany/FreeMany](#allocmanyfreemany)
   - [ReAlloc](#realloc)
-  - [Vector](#vector)
+  - [vector](#vector)
     - [Methods](#methods)
       - [New](#new)
       - [Init](#init)
@@ -26,7 +27,7 @@ and this is where mm-go comes in to play.
       - [At](#at)
       - [AtPtr](#atptr)
       - [Free](#free)
-  - [Linked List](#linked-list)
+  - [linkedlist](#linkedlist)
     - [Methods](#methods-1)
       - [New](#new-1)
       - [PushBack](#pushback)
@@ -42,14 +43,14 @@ and this is where mm-go comes in to play.
       - [FindIndexes](#findindexes)
       - [Len](#len-1)
       - [Free](#free-1)
-  - [HashMap](#hashmap)
+  - [hashmap](#hashmap)
     - [Methods](#methods-2)
       - [New](#new-2)
       - [Insert](#insert)
       - [Get](#get)
       - [GetPtr](#getptr)
       - [Free](#free-2)
-  - [String](#string)
+  - [mmstring](#mmstring)
     - [Methods](#methods-3)
       - [New](#new-3)
       - [From](#from)
@@ -75,9 +76,19 @@ and this is where mm-go comes in to play.
 go get github.com/joetifa2003/mm-go
 ```
 
-## TypedArena (recommended)
+## Packages
 
-NewTypedArena creates a typed arena with the specified chunk size.
+`mm` - basic generic memory management functions
+`typedarena` - contains TypedArena which allocates many objects and free them all at once
+`vector` - contains a manually managed Vector implementation
+`linkedlist` - contains a manually managed Linkedlist implementation
+`hashmap` - contains a manually managed Hashmap implementation
+`mmstring` - contains a manually managed string implementation
+`malloc` - contains wrappers to raw C malloc and free
+
+## typedarena
+
+New creates a typed arena with the specified chunk size.
 a chunk is the the unit of the arena, if T is int for example and the
 chunk size is 5, then each chunk is going to hold 5 ints. And if the
 chunk is filled it will allocate another chunk that can hold 5 ints.
@@ -156,7 +167,7 @@ assert.Equal(15, allocated[0]) // data after reallocation stays the same
 mm.FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 ```
 
-## Vector
+## vector
 
 A contiguous growable array type.
 You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct.
@@ -290,7 +301,7 @@ func (v *Vector[T]) AtPtr(idx int) *T
 func (v *Vector[T]) Free()
 ```
 
-## Linked List
+## linkedlist
 
 LinkedList a doubly-linked list.
 Note: can be a lot slower than Vector but sometimes faster in specific use cases
@@ -396,7 +407,7 @@ func (ll *LinkedList[T]) Len() int
 func (ll *LinkedList[T]) Free()
 ```
 
-## HashMap
+## hashmap
 
 Manually managed hashmap, keys can be hashmap.String, hashmap.Int or any type that implements the hashmap.Hashable interface
 
@@ -445,7 +456,7 @@ func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool)
 func (hm *Hashmap[K, V]) Free()
 ```
 
-## String
+## mmstring
 
 MMString is a manually manged string that is basically a \*Vector[rune]
 and contains all the methods of a vector plus additional helper functions
