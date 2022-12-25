@@ -147,11 +147,13 @@ func sumBinaryTree(tree *TreeNode) int {
 	return sumBinaryTree(tree.left) + sumBinaryTree(tree.right)
 }
 
+const TREE_DEPTH = 26
+
 func BenchmarkBinaryTreeManaged(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		tree := createTreeManaged(25)
-		sumBinaryTree(tree)
+		tree := createTreeManaged(TREE_DEPTH)
 		runtime.GC()
+		sumBinaryTree(tree)
 	}
 }
 
@@ -160,10 +162,10 @@ func BenchmarkBinaryTreeArena(b *testing.B) {
 		b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				arena := typedarena.New[TreeNode](chunkSize)
-				tree := createTreeManual(25, arena)
+				tree := createTreeManual(TREE_DEPTH, arena)
+				runtime.GC()
 				sumBinaryTree(tree)
 				arena.Free()
-				runtime.GC()
 			}
 		})
 	}
