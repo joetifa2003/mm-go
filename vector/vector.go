@@ -9,15 +9,13 @@ import (
 // Vector a contiguous growable array type
 type Vector[T any] struct {
 	data []T
-	cap  int
 	len  int
 }
 
 func createVector[T any](len int, cap int) *Vector[T] {
 	vector := mm.Alloc[Vector[T]]()
-	vector.cap = cap
 	vector.len = len
-	vector.data = mm.AllocMany[T](vector.cap)
+	vector.data = mm.AllocMany[T](cap)
 
 	return vector
 }
@@ -47,9 +45,8 @@ func Init[T any](values ...T) *Vector[T] {
 
 // Push pushes value T to the vector, grows if needed.
 func (v *Vector[T]) Push(value T) {
-	if v.len == v.cap {
-		v.data = mm.Reallocate(v.data, v.cap*2)
-		v.cap *= 2
+	if v.len == v.Cap() {
+		v.data = mm.Reallocate(v.data, v.Cap()*2)
 	}
 
 	v.data[v.len] = value
@@ -69,7 +66,7 @@ func (v *Vector[T]) Len() int {
 
 // Cap gets vector capacity (underling memory length).
 func (v *Vector[T]) Cap() int {
-	return v.cap
+	return cap(v.data)
 }
 
 // Slice gets a slice representing the vector
