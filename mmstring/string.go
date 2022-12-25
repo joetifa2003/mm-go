@@ -1,6 +1,8 @@
 package mmstring
 
 import (
+	"hash/fnv"
+
 	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/vector"
 )
@@ -33,13 +35,8 @@ func From(input string) *MMString {
 // GetGoString returns go string from manually managed string.
 // CAUTION: You also have to free the MMString
 func (s *MMString) GetGoString() string {
-	res := ""
-
-	for _, r := range s.Slice() {
-		res += string(r)
-	}
-
-	return res
+	runes := s.Slice()
+	return string(runes)
 }
 
 // AppendGoString appends go string to manually managed string
@@ -47,6 +44,14 @@ func (s *MMString) AppendGoString(input string) {
 	for _, r := range input {
 		s.Push(r)
 	}
+}
+
+// Hash implements Hashable interface
+func (s *MMString) Hash() uint32 {
+	runes := s.Slice()
+	h := fnv.New32a()
+	h.Write([]byte(string(runes)))
+	return 0
 }
 
 // Free frees MMString
