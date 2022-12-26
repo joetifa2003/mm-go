@@ -534,24 +534,29 @@ Check the test files and github actions for the benchmarks (linux, macos, window
 mm-go can sometimes be 5-10 times faster.
 
 ```
-Run go test -bench . -count 5 > out.txt && benchstat out.txt
+Run go test ./... -bench=. -count 5 > out.txt && benchstat out.txt
 
 name                                time/op
-HeapManaged/node_count_10000-2       633µs ± 2%
-HeapManaged/node_count_100000-2     4.57ms ± 4%
-HeapManaged/node_count_10000000-2    816ms ± 2%
-HeapManaged/node_count_100000000-2   7.85s ± 1%
-Manual/node_count_10000-2            303µs ± 3%
-Manual/node_count_100000-2           742µs ± 4%
-Manual/node_count_10000000-2         105ms ± 3%
-Manual/node_count_100000000-2        1.01s ± 3%
-ArenaManual/node_count_10000-2       299µs ± 3%
-ArenaManual/node_count_100000-2      708µs ± 5%
-ArenaManual/node_count_10000000-2    100ms ± 1%
-ArenaManual/node_count_100000000-2   987ms ± 1%
-BinaryTreeManaged-2                  3.01s ± 3%
-BinaryTreeArena/chunk_size_50-2      1.38s ±27%
-BinaryTreeArena/chunk_size_100-2     975ms ± 1%
-BinaryTreeArena/chunk_size_150-2     913ms ±14%
-BinaryTreeArena/chunk_size_250-2     748ms ± 7%
+pkg:github.com/joetifa2003/mm-go goos:linux goarch:amd64
+HeapManaged/node_count_10000-2       504µs ± 1%
+HeapManaged/node_count_100000-2     3.73ms ± 6%
+HeapManaged/node_count_10000000-2    664ms ± 8%
+HeapManaged/node_count_100000000-2   6.30s ± 4%
+Manual/node_count_10000-2            226µs ± 1%
+Manual/node_count_100000-2           576µs ± 1%
+Manual/node_count_10000000-2        70.6ms ± 1%
+Manual/node_count_100000000-2        702ms ± 1%
+ArenaManual/node_count_10000-2       226µs ± 1%
+ArenaManual/node_count_100000-2      553µs ± 0%
+ArenaManual/node_count_10000000-2   69.1ms ± 0%
+ArenaManual/node_count_100000000-2   681ms ± 1%
+BinaryTreeManaged-2                  6.07s ±10%
+BinaryTreeArena/chunk_size_50-2      2.30s ±21%
+BinaryTreeArena/chunk_size_100-2     1.47s ± 5%
+BinaryTreeArena/chunk_size_150-2     1.42s ±36%
+BinaryTreeArena/chunk_size_250-2     1.11s ± 0%
+BinaryTreeArena/chunk_size_500-2     1.00s ± 0%
+pkg:github.com/joetifa2003/mm-go/hashmap goos:linux goarch:amd64
+HashMap-2                           14.8ms ± 0%
+GoMap-2                             6.39ms ± 1%
 ```
