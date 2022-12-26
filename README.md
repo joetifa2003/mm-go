@@ -36,6 +36,7 @@ and this is where mm-go comes in to play.
       - [PopFront](#popfront)
       - [ForEach](#foreach)
       - [At](#at-1)
+      - [AtPtr](#atptr-1)
       - [RemoveAt](#removeat)
       - [Remove](#remove)
       - [RemoveAll](#removeall)
@@ -73,7 +74,7 @@ and this is where mm-go comes in to play.
 ## Installing
 
 ```
-go get github.com/joetifa2003/mm-go
+go get -u github.com/joetifa2003/mm-go
 ```
 
 ## Packages
@@ -361,6 +362,13 @@ func (ll *LinkedList[T]) ForEach(f func(idx int, value T))
 ```go
 // At gets value T at idx.
 func (ll *LinkedList[T]) At(idx int) T
+```
+
+#### AtPtr
+
+```go
+// AtPtr gets a pointer to value T at idx.
+func (ll *LinkedList[T]) AtPtr(idx int) *T
 ```
 
 #### RemoveAt

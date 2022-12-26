@@ -149,6 +149,11 @@ func (ll *LinkedList[T]) At(idx int) T {
 	return ll.nodeAt(idx).value
 }
 
+// AtPtr gets a pointer to value T at idx.
+func (ll *LinkedList[T]) AtPtr(idx int) *T {
+	return &ll.nodeAt(idx).value
+}
+
 // RemoveAt removes value T at specified index and returns it.
 func (ll *LinkedList[T]) RemoveAt(idx int) T {
 	node := ll.nodeAt(idx)
