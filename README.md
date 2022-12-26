@@ -48,6 +48,7 @@ and this is where mm-go comes in to play.
     - [Methods](#methods-2)
       - [New](#new-2)
       - [Insert](#insert)
+      - [Delete](#delete)
       - [Get](#get)
       - [GetPtr](#getptr)
       - [Free](#free-2)
@@ -447,6 +448,13 @@ func New[K Hashable, V any]() *Hashmap[K, V]
 // Insert inserts a new value V if key K doesn't exist,
 // Otherwise update the key K with value V
 func (hm *Hashmap[K, V]) Insert(key K, value V)
+```
+
+#### Delete
+
+```go
+// Delete delete value with key K
+func (hm *Hashmap[K, V]) Delete(key K)
 ```
 
 #### Get

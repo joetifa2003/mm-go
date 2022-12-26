@@ -11,6 +11,8 @@ import (
 func TestHashmap(t *testing.T) {
 	t.Run("insert", testInsert)
 	t.Run("keys and values", testHashmapKeysValues)
+
+	t.Run("delete", testDelete)
 }
 
 func testInsert(t *testing.T) {
@@ -26,6 +28,16 @@ func testInsert(t *testing.T) {
 	}
 
 	for i := 0; i < TIMES; i++ {
+		if i%2 == 0 {
+			hm.Delete(hashmap.String(fmt.Sprint(i)))
+		}
+	}
+
+	for i := 0; i < TIMES; i++ {
+		if i%2 == 0 {
+			continue
+		}
+
 		value, exits := hm.Get(hashmap.String(fmt.Sprint(i)))
 		assert.Equal(fmt.Sprint(i), value)
 		assert.Equal(true, exits)
@@ -79,6 +91,16 @@ func testHashmapKeysValues(t *testing.T) {
 	})
 
 	assert.Equal(i, 2)
+}
+
+func testDelete(t *testing.T) {
+	assert := assert.New(t)
+
+	hm := hashmap.New[hashmap.Int, int]()
+	hm.Insert(1, 1)
+	assert.Equal([]int{1}, hm.Values())
+	hm.Delete(1)
+	assert.Equal([]int{}, hm.Values())
 }
 
 const TIMES = 15000

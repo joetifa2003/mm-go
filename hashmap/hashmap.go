@@ -60,12 +60,12 @@ func (hm *Hashmap[K, V]) extend() {
 	hm.totalTaken = 0
 	hm.pairs = newPairs
 
-	for _, c := range oldPairs.Slice() {
-		if c == nil {
+	for _, pairs := range oldPairs.Slice() {
+		if pairs == nil {
 			continue
 		}
 
-		c.ForEach(func(idx int, p pair[K, V]) {
+		pairs.ForEach(func(idx int, p pair[K, V]) {
 			hm.Insert(p.key, p.value)
 		})
 	}
@@ -175,6 +175,19 @@ func (hm *Hashmap[K, V]) Keys() []K {
 	}
 
 	return res
+}
+
+// Delete delete value with key K
+func (hm *Hashmap[K, V]) Delete(key K) {
+	idx := int(key.Hash() % uint32(hm.pairs.Len()))
+	pairs := hm.pairs.At(idx)
+	if pairs == nil {
+		return
+	}
+
+	pairs.Remove(func(idx int, p pair[K, V]) bool {
+		return p.key == key
+	})
 }
 
 // Free frees the Hashmap
