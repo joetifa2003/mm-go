@@ -9,7 +9,7 @@ import (
 	"github.com/edsrzf/mmap-go"
 )
 
-var pageSize = os.Getpagesize() * 4
+var pageSize = os.Getpagesize()
 
 // Blocks allocated from MMap
 type block struct {
