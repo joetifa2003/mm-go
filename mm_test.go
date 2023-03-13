@@ -147,7 +147,7 @@ func sumBinaryTree(tree *TreeNode) int {
 	return sumBinaryTree(tree.left) + sumBinaryTree(tree.right)
 }
 
-const TREE_DEPTH = 26
+const TREE_DEPTH = 20
 
 func BenchmarkBinaryTreeManaged(b *testing.B) {
 	for n := 0; n < b.N; n++ {
