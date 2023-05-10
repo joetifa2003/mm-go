@@ -107,14 +107,14 @@ const TIMES = 15000
 
 func BenchmarkHashMap(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		hm := hashmap.New[hashmap.String, int]()
+		hm := hashmap.New[hashmap.Int, int]()
 		for i := 0; i < TIMES; i++ {
-			hm.Insert(hashmap.String(fmt.Sprint(i)), i)
+			hm.Insert(hashmap.Int(i), i)
 		}
 
 		sum := 0
 		for i := 0; i < TIMES; i++ {
-			v, _ := hm.Get(hashmap.String(fmt.Sprint(i)))
+			v, _ := hm.Get(hashmap.Int(i))
 			sum += v
 		}
 
@@ -126,14 +126,14 @@ func BenchmarkHashMap(b *testing.B) {
 
 func BenchmarkGoMap(b *testing.B) {
 	for n := 0; n < b.N; n++ {
-		hm := map[string]int{}
+		hm := map[int]int{}
 		for i := 0; i < TIMES; i++ {
-			hm[fmt.Sprint(i)] = i
+			hm[i] = i
 		}
 
 		sum := 0
 		for i := 0; i < TIMES; i++ {
-			sum += hm[fmt.Sprint(i)]
+			sum += hm[i]
 		}
 
 		_ = sum
