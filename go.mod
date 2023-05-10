@@ -1,6 +1,6 @@
 module github.com/joetifa2003/mm-go
 
-go 1.19
+go 1.20
 
 require (
 	github.com/ebitengine/purego v0.4.0-alpha.4
