@@ -6,60 +6,45 @@
 Golang manages memory via GC and it's good for almost every use case but sometimes it can be a bottleneck.
 and this is where mm-go comes in to play.
 
-- [mm-go Generic manual memory management for golang](#mm-go-generic-manual-memory-management-for-golang)
-  - [Before using mm-go](#before-using-mm-go)
-  - [Installing](#installing)
-  - [Packages](#packages)
-  - [typedarena](#typedarena)
-  - [Alloc/Free](#allocfree)
-  - [AllocMany/FreeMany](#allocmanyfreemany)
-  - [ReAlloc](#realloc)
-  - [vector](#vector)
-    - [Methods](#methods)
-      - [New](#new)
-      - [Init](#init)
-      - [Push](#push)
-      - [Pop](#pop)
-      - [Len](#len)
-      - [Cap](#cap)
-      - [Slice](#slice)
-      - [Last](#last)
-      - [At](#at)
-      - [AtPtr](#atptr)
-      - [Free](#free)
-  - [linkedlist](#linkedlist)
-    - [Methods](#methods-1)
-      - [New](#new-1)
-      - [PushBack](#pushback)
-      - [PushFront](#pushfront)
-      - [PopBack](#popback)
-      - [PopFront](#popfront)
-      - [ForEach](#foreach)
-      - [At](#at-1)
-      - [AtPtr](#atptr-1)
-      - [RemoveAt](#removeat)
-      - [Remove](#remove)
-      - [RemoveAll](#removeall)
-      - [FindIndex](#findindex)
-      - [FindIndexes](#findindexes)
-      - [Len](#len-1)
-      - [Free](#free-1)
-  - [hashmap](#hashmap)
-    - [Methods](#methods-2)
-      - [New](#new-2)
-      - [Insert](#insert)
-      - [Delete](#delete)
-      - [Get](#get)
-      - [GetPtr](#getptr)
-      - [Free](#free-2)
-  - [mmstring](#mmstring)
-    - [Methods](#methods-3)
-      - [New](#new-3)
-      - [From](#from)
-      - [GetGoString](#getgostring)
-      - [AppendGoString](#appendgostring)
-      - [Free](#free-3)
-  - [Benchmarks](#benchmarks)
+-   [mm-go Generic manual memory management for golang](#mm-go-generic-manual-memory-management-for-golang)
+    -   [Before using mm-go](#before-using-mm-go)
+    -   [Installing](#installing)
+    -   [Packages](#packages)
+    -   [typedarena](#typedarena)
+    -   [Alloc/Free](#allocfree)
+    -   [AllocMany/FreeMany](#allocmanyfreemany)
+    -   [ReAlloc](#realloc)
+    -   [vector](#vector)
+        -   [Methods](#methods)
+            -   [New](#new)
+            -   [Init](#init)
+            -   [Push](#push)
+            -   [Pop](#pop)
+            -   [Len](#len)
+            -   [Cap](#cap)
+            -   [Slice](#slice)
+            -   [Last](#last)
+            -   [At](#at)
+            -   [AtPtr](#atptr)
+            -   [Free](#free)
+    -   [linkedlist](#linkedlist)
+        -   [Methods](#methods-1)
+            -   [New](#new-1)
+            -   [PushBack](#pushback)
+            -   [PushFront](#pushfront)
+            -   [PopBack](#popback)
+            -   [PopFront](#popfront)
+            -   [ForEach](#foreach)
+            -   [At](#at-1)
+            -   [AtPtr](#atptr-1)
+            -   [RemoveAt](#removeat)
+            -   [Remove](#remove)
+            -   [RemoveAll](#removeall)
+            -   [FindIndex](#findindex)
+            -   [FindIndexes](#findindexes)
+            -   [Len](#len-1)
+            -   [Free](#free-1)
+    -   [Benchmarks](#benchmarks)
 
 ## Before using mm-go
 
@@ -87,8 +72,6 @@ go get -u github.com/joetifa2003/mm-go
 `vector` - contains a manually managed Vector implementation.
 
 `linkedlist` - contains a manually managed Linkedlist implementation.
-
-`hashmap` - contains a manually managed Hashmap implementation.
 
 `mmstring` - contains a manually managed string implementation.
 
@@ -422,112 +405,6 @@ func (ll *LinkedList[T]) Len() int
 func (ll *LinkedList[T]) Free()
 ```
 
-## hashmap
-
-Manually managed hashmap, keys can be hashmap.String, hashmap.Int or any type that implements the hashmap.Hashable interface
-
-```go
-type Hashable interface {
-	comparable
-	Hash() uint32
-}
-```
-
-### Methods
-
-#### New
-
-```go
-// New creates a new Hashmap with key of type K and value of type V
-func New[K Hashable, V any]() *Hashmap[K, V]
-```
-
-#### Insert
-
-```go
-// Insert inserts a new value V if key K doesn't exist,
-// Otherwise update the key K with value V
-func (hm *Hashmap[K, V]) Insert(key K, value V)
-```
-
-#### Delete
-
-```go
-// Delete delete value with key K
-func (hm *Hashmap[K, V]) Delete(key K)
-```
-
-#### Get
-
-```go
-// Get takes key K and return value V
-func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool)
-```
-
-#### GetPtr
-
-```go
-// GetPtr takes key K and return a pointer to value V
-func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool)
-```
-
-#### Free
-
-```go
-// Free frees the Hashmap
-func (hm *Hashmap[K, V]) Free()
-```
-
-## mmstring
-
-MMString is a manually manged string that is basically a \*Vector[rune]
-and contains all the methods of a vector plus additional helper functions
-
-```go
-type MMString struct {
-	*vector.Vector[rune]
-}
-```
-
-### Methods
-
-#### New
-
-```go
-// New create a new manually managed string
-func New() *MMString
-```
-
-#### From
-
-```go
-// From creates a new manually managed string,
-// And initialize it with a go string
-func From(input string) *MMString
-```
-
-#### GetGoString
-
-```go
-// GetGoString returns go string from manually managed string.
-// CAUTION: You also have to free the MMString
-func (s *MMString) GetGoString() string
-```
-
-#### AppendGoString
-
-```go
-// AppendGoString appends go string to manually managed string
-func (s *MMString) AppendGoString(input string)
-```
-
-#### Free
-
-```go
-// Free frees MMString
-func (s *MMString) Free()
-```
-
 ## Benchmarks
 
 Check the test files and github actions for the benchmarks (linux, macos, windows).
@@ -556,7 +433,4 @@ BinaryTreeArena/chunk_size_100-2     1.47s ± 5%
 BinaryTreeArena/chunk_size_150-2     1.42s ±36%
 BinaryTreeArena/chunk_size_250-2     1.11s ± 0%
 BinaryTreeArena/chunk_size_500-2     1.00s ± 0%
-pkg:github.com/joetifa2003/mm-go/hashmap goos:linux goarch:amd64
-HashMap-2                           14.8ms ± 0%
-GoMap-2                             6.39ms ± 1%
 ```
