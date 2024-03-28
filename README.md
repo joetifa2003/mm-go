@@ -158,6 +158,64 @@ assert.Equal(15, allocated[0]) // data after reallocation stays the same
 mm.FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
 ```
 
+## hashmap
+
+Manually managed hashmap, keys can be hashmap.String, hashmap.Int or any type that implements the hashmap.Hashable interface
+
+```go
+type Hashable interface {
+	comparable
+	Hash() uint32
+}
+```
+
+You can use pkg like [hashstructure](https://github.com/mitchellh/hashstructure) to hash your complex types and implement the interface.
+
+### Methods
+
+#### New
+
+```go
+// New creates a new Hashmap with key of type K and value of type V
+func New[K Hashable, V any]() *Hashmap[K, V]
+```
+
+#### Insert
+
+```go
+// Insert inserts a new value V if key K doesn't exist,
+// Otherwise update the key K with value V
+func (hm *Hashmap[K, V]) Insert(key K, value V)
+```
+
+#### Delete
+
+```go
+// Delete delete value with key K
+func (hm *Hashmap[K, V]) Delete(key K)
+```
+
+#### Get
+
+```go
+// Get takes key K and return value V
+func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool)
+```
+
+#### GetPtr
+
+```go
+// GetPtr takes key K and return a pointer to value V
+func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool)
+```
+
+#### Free
+
+```go
+// Free frees the Hashmap
+func (hm *Hashmap[K, V]) Free()
+```
+
 ## vector
 
 A contiguous growable array type.
