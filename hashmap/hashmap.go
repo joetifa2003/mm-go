@@ -1,38 +1,14 @@
 package hashmap
 
 import (
-	"hash/fnv"
+	"github.com/mitchellh/hashstructure/v2"
 
 	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/linkedlist"
 	"github.com/joetifa2003/mm-go/vector"
 )
 
-// Hashable keys must implement this interface
-// or use type hashmap.String and hashmap.Int
-// which implements the interface
-type Hashable interface {
-	comparable
-	Hash() uint32
-}
-
-// String a string type that implements Hashable Interface
-type String string
-
-func (s String) Hash() uint32 {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-	return h.Sum32()
-}
-
-// Int an int type that implements Hashable Interface
-type Int int
-
-func (i Int) Hash() uint32 {
-	return uint32(i)
-}
-
-type pair[K Hashable, V any] struct {
+type pair[K comparable, V any] struct {
 	key   K
 	value V
 }
@@ -40,13 +16,13 @@ type pair[K Hashable, V any] struct {
 // Hashmap Manually managed hashmap,
 // keys can be hashmap.String, hashmap.Int or any type that
 // implements the hashmap.Hashable interface
-type Hashmap[K Hashable, V any] struct {
+type Hashmap[K comparable, V any] struct {
 	pairs      *vector.Vector[*linkedlist.LinkedList[pair[K, V]]]
 	totalTaken int
 }
 
 // New creates a new Hashmap with key of type K and value of type V
-func New[K Hashable, V any]() *Hashmap[K, V] {
+func New[K comparable, V any]() *Hashmap[K, V] {
 	hm := mm.Alloc[Hashmap[K, V]]()
 	hm.pairs = vector.New[*linkedlist.LinkedList[pair[K, V]]](8)
 	return hm
@@ -83,7 +59,12 @@ func (hm *Hashmap[K, V]) Insert(key K, value V) {
 		hm.extend()
 	}
 
-	idx := int(key.Hash() % uint32(hm.pairs.Len()))
+	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
 	if pairs == nil {
 		newPairs := linkedlist.New[pair[K, V]]()
@@ -96,7 +77,12 @@ func (hm *Hashmap[K, V]) Insert(key K, value V) {
 
 // Get takes key K and return value V
 func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool) {
-	idx := int(key.Hash() % uint32(hm.pairs.Len()))
+	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
 	if pairs == nil {
 		return *new(V), false
@@ -114,7 +100,12 @@ func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool) {
 
 // GetPtr takes key K and return a pointer to value V
 func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool) {
-	idx := int(key.Hash() % uint32(hm.pairs.Len()))
+	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
 	if pairs == nil {
 		return nil, false
@@ -179,7 +170,12 @@ func (hm *Hashmap[K, V]) Keys() []K {
 
 // Delete delete value with key K
 func (hm *Hashmap[K, V]) Delete(key K) {
-	idx := int(key.Hash() % uint32(hm.pairs.Len()))
+	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
 	if pairs == nil {
 		return
