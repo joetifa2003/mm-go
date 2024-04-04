@@ -1,16 +1,19 @@
 package linkedlist_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/joetifa2003/mm-go/linkedlist"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/joetifa2003/mm-go/linkedlist"
 )
 
 func testPushAndPop(t *testing.T) {
 	assert := assert.New(t)
+	ctx := context.Background()
 
-	ll := linkedlist.New[int]()
+	ll := linkedlist.New[int](ctx)
 	defer ll.Free()
 
 	ll.PushBack(15)
@@ -47,8 +50,9 @@ func testPushAndPop(t *testing.T) {
 
 func testForEach(t *testing.T) {
 	assert := assert.New(t)
+	ctx := context.Background()
 
-	ll := linkedlist.New[int]()
+	ll := linkedlist.New[int](ctx)
 	defer ll.Free()
 
 	ll.PushBack(2)
@@ -71,8 +75,9 @@ func testForEach(t *testing.T) {
 
 func testIndexing(t *testing.T) {
 	assert := assert.New(t)
+	ctx := context.Background()
 
-	ll := linkedlist.New[int]()
+	ll := linkedlist.New[int](ctx)
 	defer ll.Free()
 
 	ll.PushBack(1)
@@ -110,8 +115,9 @@ func testIndexing(t *testing.T) {
 
 func testRemove(t *testing.T) {
 	assert := assert.New(t)
+	ctx := context.Background()
 
-	ll := linkedlist.New[int]()
+	ll := linkedlist.New[int](ctx)
 	defer ll.Free()
 
 	ll.PushBack(1)

@@ -1,6 +1,7 @@
 package hashmap_test
 
 import (
+	"context"
 	"runtime"
 	"testing"
 
@@ -11,11 +12,12 @@ import (
 const TIMES = 5000
 
 func BenchmarkHashmap(b *testing.B) {
+	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
-		h := hashmap.New[int, *mmstring.MMString]()
+		h := hashmap.New[int, mmstring.MMString](ctx)
 
 		for i := 0; i < TIMES; i++ {
-			h.Insert(i, mmstring.From("foo bar"))
+			h.Insert(i, mmstring.From(ctx, "foo bar"))
 		}
 
 		h.Free()

@@ -1,6 +1,7 @@
 package linkedlist
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/joetifa2003/mm-go"
@@ -20,17 +21,19 @@ type LinkedList[T any] struct {
 	head   *linkedListNode[T]
 	tail   *linkedListNode[T]
 	length int
+	ctx    context.Context
 }
 
 // New creates a new linked list.
-func New[T any]() *LinkedList[T] {
-	linkedList := mm.Alloc[LinkedList[T]]()
+func New[T any](ctx context.Context) *LinkedList[T] {
+	linkedList := mm.Alloc[LinkedList[T]](ctx)
+	linkedList.ctx = ctx
 
 	return linkedList
 }
 
 func (ll *LinkedList[T]) init(value T) {
-	ll.head = mm.Alloc[linkedListNode[T]]()
+	ll.head = mm.Alloc[linkedListNode[T]](ll.ctx)
 	ll.head.value = value
 	ll.tail = ll.head
 	ll.length++
@@ -38,7 +41,7 @@ func (ll *LinkedList[T]) init(value T) {
 
 func (ll *LinkedList[T]) popLast() T {
 	value := ll.tail.value
-	mm.Free(ll.tail)
+	mm.Free(ll.ctx, ll.tail)
 	ll.tail = nil
 	ll.head = nil
 	ll.length--
@@ -53,7 +56,7 @@ func (ll *LinkedList[T]) PushBack(value T) {
 		return
 	}
 
-	newNode := mm.Alloc[linkedListNode[T]]()
+	newNode := mm.Alloc[linkedListNode[T]](ll.ctx)
 	newNode.value = value
 	newNode.prev = ll.tail
 	ll.tail.next = newNode
@@ -69,7 +72,7 @@ func (ll *LinkedList[T]) PushFront(value T) {
 		return
 	}
 
-	newNode := mm.Alloc[linkedListNode[T]]()
+	newNode := mm.Alloc[linkedListNode[T]](ll.ctx)
 	newNode.value = value
 	newNode.next = ll.head
 	ll.head.prev = newNode
@@ -90,7 +93,7 @@ func (ll *LinkedList[T]) PopBack() T {
 	value := ll.tail.value
 	newTail := ll.tail.prev
 	newTail.next = nil
-	mm.Free(ll.tail)
+	mm.Free(ll.ctx, ll.tail)
 	ll.tail = newTail
 	ll.length--
 
@@ -110,7 +113,7 @@ func (ll *LinkedList[T]) PopFront() T {
 	value := ll.head.value
 	newHead := ll.head.next
 	newHead.prev = nil
-	mm.Free(ll.head)
+	mm.Free(ll.ctx, ll.head)
 	ll.head = newHead
 	ll.length--
 
@@ -172,7 +175,7 @@ func (ll *LinkedList[T]) RemoveAt(idx int) T {
 	prevNode.next = nextNode
 	ll.length--
 
-	mm.Free(node)
+	mm.Free(ll.ctx, node)
 
 	return value
 }
@@ -267,9 +270,9 @@ func (ll *LinkedList[T]) Free() {
 
 	for currentNode != nil {
 		nextNode := currentNode.next
-		mm.Free(currentNode)
+		mm.Free(ll.ctx, currentNode)
 		currentNode = nextNode
 	}
 
-	mm.Free(ll)
+	mm.Free(ll.ctx, ll)
 }

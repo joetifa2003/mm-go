@@ -1,6 +1,7 @@
 package vector
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/joetifa2003/mm-go"
@@ -10,12 +11,14 @@ import (
 type Vector[T any] struct {
 	data []T
 	len  int
+	ctx  context.Context
 }
 
-func createVector[T any](len int, cap int) *Vector[T] {
-	vector := mm.Alloc[Vector[T]]()
+func createVector[T any](ctx context.Context, len int, cap int) *Vector[T] {
+	vector := mm.Alloc[Vector[T]](ctx)
 	vector.len = len
-	vector.data = mm.AllocMany[T](cap)
+	vector.data = mm.AllocMany[T](ctx, cap)
+	vector.ctx = ctx
 
 	return vector
 }
@@ -24,21 +27,21 @@ func createVector[T any](len int, cap int) *Vector[T] {
 // it will create an empty vector, if only one arg is provided
 // it will init a vector with len and cap equal to the provided arg,
 // if two args are provided it will init a vector with len = args[0] cap = args[1]
-func New[T any](args ...int) *Vector[T] {
+func New[T any](ctx context.Context, args ...int) *Vector[T] {
 	switch len(args) {
 	case 0:
-		return createVector[T](0, 1)
+		return createVector[T](ctx, 0, 1)
 	case 1:
-		return createVector[T](args[0], args[0])
+		return createVector[T](ctx, args[0], args[0])
 	default:
-		return createVector[T](args[0], args[1])
+		return createVector[T](ctx, args[0], args[1])
 	}
 }
 
 // Init initializes a new vector with the T elements provided and sets
 // it's len and cap to len(values)
-func Init[T any](values ...T) *Vector[T] {
-	vector := createVector[T](len(values), len(values))
+func Init[T any](ctx context.Context, values ...T) *Vector[T] {
+	vector := createVector[T](ctx, len(values), len(values))
 	copy(vector.data, values)
 	return vector
 }
@@ -46,7 +49,7 @@ func Init[T any](values ...T) *Vector[T] {
 // Push pushes value T to the vector, grows if needed.
 func (v *Vector[T]) Push(value T) {
 	if v.len == v.Cap() {
-		v.data = mm.Reallocate(v.data, v.Cap()*2)
+		v.data = mm.Reallocate(v.ctx, v.data, v.Cap()*2)
 	}
 
 	v.data[v.len] = value
@@ -110,6 +113,6 @@ func (v *Vector[T]) Set(idx int, value T) {
 
 // Free deallocats the vector
 func (v *Vector[T]) Free() {
-	mm.FreeMany(v.data)
-	mm.Free(v)
+	mm.FreeMany(v.ctx, v.data)
+	mm.Free(v.ctx, v)
 }
