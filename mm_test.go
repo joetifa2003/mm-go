@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/vector"
 )
 
 type Node struct {
@@ -41,7 +43,7 @@ func heapManaged(nodes int) {
 }
 
 func BenchmarkHeapManaged(b *testing.B) {
-	benchMarkSuit(b, heapManaged)
+	benchMarkSuitSimple(b, heapManaged)
 }
 
 func manual(nodes int) {
@@ -70,10 +72,40 @@ func manual(nodes int) {
 }
 
 func BenchmarkManual(b *testing.B) {
-	benchMarkSuit(b, manual)
+	benchMarkSuitSimple(b, manual)
 }
 
-func benchMarkSuit(b *testing.B, f func(int)) {
+func arena(nodes int) {
+	alloc := allocator.NewArena(allocator.NewC())
+	ctx := allocator.WithAllocator(context.Background(), alloc)
+	allocatedNodes := mm.AllocMany[Node](ctx, nodes)
+
+	for j := 0; j < nodes; j++ {
+		var prev *Node
+		var next *Node
+		if j != 0 {
+			prev = &allocatedNodes[j-1]
+		}
+		if j != nodes-1 {
+			next = &allocatedNodes[j+1]
+		}
+
+		allocatedNodes[j] = Node{
+			Value: j,
+			Prev:  prev,
+			Next:  next,
+		}
+	}
+
+	alloc.Destroy()
+	runtime.GC()
+}
+
+func BenchmarkArena(b *testing.B) {
+	benchMarkSuitSimple(b, arena)
+}
+
+func benchMarkSuitSimple(b *testing.B, f func(int)) {
 	nodeCounts := []int{10000, 100000, 10000000, 100000000}
 	for _, nc := range nodeCounts {
 		b.Run(fmt.Sprintf("node count %d", nc), func(b *testing.B) {
@@ -82,6 +114,119 @@ func benchMarkSuit(b *testing.B, f func(int)) {
 			}
 		})
 	}
+}
+
+func benchMarkSuitTree(b *testing.B, f func(int)) {
+	depths := []int{10, 15, 20, 25}
+	for _, nc := range depths {
+		b.Run(fmt.Sprintf("depth %d", nc), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				f(nc)
+			}
+		})
+	}
+}
+
+type Tree struct {
+	value int
+	left  *Tree
+	right *Tree
+}
+
+func generateTreeManaged(depth int) *Tree {
+	if depth == 0 {
+		return nil
+	}
+
+	return &Tree{
+		value: depth,
+		left:  generateTreeManaged(depth - 1),
+		right: generateTreeManaged(depth - 1),
+	}
+}
+
+func treeManaged(depth int) {
+	generateTreeManaged(depth)
+}
+
+func BenchmarkTreeManaged(b *testing.B) {
+	benchMarkSuitTree(b, treeManaged)
+}
+
+func generateTreeArena(ctx context.Context, depth int) *Tree {
+	if depth == 0 {
+		return nil
+	}
+
+	tree := mm.Alloc[Tree](ctx)
+	tree.value = depth
+	tree.left = generateTreeArena(ctx, depth-1)
+	tree.right = generateTreeArena(ctx, depth-1)
+
+	return tree
+}
+
+func treeArena(depth int) {
+	alloc := allocator.NewArena(allocator.NewC())
+	ctx := allocator.WithAllocator(context.Background(), alloc)
+
+	tree := generateTreeArena(ctx, depth)
+	_ = tree
+
+	alloc.Destroy()
+}
+
+func BenchmarkTreeArena(b *testing.B) {
+	benchMarkSuitTree(b, treeArena)
+}
+
+type Entity struct {
+	health int
+}
+
+func stressTestArena() {
+	alloc := allocator.NewArena(allocator.NewC())
+	ctx := allocator.WithAllocator(context.Background(), alloc)
+
+	v := vector.New[*Entity](ctx)
+
+	for i := 0; i < 10000; i++ {
+		v.Push(newEntity(ctx))
+	}
+
+	alloc.Destroy()
+	runtime.GC()
+}
+
+var entitisManaged []*Entity
+
+func stressTestManaged() {
+	entitisManaged = []*Entity{}
+	for i := 0; i < 10000; i++ {
+		entitisManaged = append(entitisManaged, newEntityManaged())
+	}
+
+	runtime.GC()
+}
+
+func BenchmarkStressArena(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		stressTestArena()
+	}
+}
+
+func BenchmarkStressManaged(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		stressTestManaged()
+	}
+}
+
+func newEntity(ctx context.Context) *Entity {
+	return mm.Alloc[Entity](ctx)
+}
+
+func newEntityManaged() *Entity {
+	return &Entity{}
 }
 
 func TestAllocMany(t *testing.T) {

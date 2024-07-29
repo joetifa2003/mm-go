@@ -5,20 +5,22 @@ import (
 	"fmt"
 
 	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/allocator"
 )
 
 // Vector a contiguous growable array type
 type Vector[T any] struct {
-	data []T
-	len  int
-	ctx  context.Context
+	data      []T
+	len       int
+	allocator allocator.Allocator
 }
 
 func createVector[T any](ctx context.Context, len int, cap int) *Vector[T] {
+	allocator := allocator.GetAllocator(ctx)
 	vector := mm.Alloc[Vector[T]](ctx)
 	vector.len = len
 	vector.data = mm.AllocMany[T](ctx, cap)
-	vector.ctx = ctx
+	vector.allocator = allocator
 
 	return vector
 }
@@ -49,7 +51,7 @@ func Init[T any](ctx context.Context, values ...T) *Vector[T] {
 // Push pushes value T to the vector, grows if needed.
 func (v *Vector[T]) Push(value T) {
 	if v.len == v.Cap() {
-		v.data = mm.Reallocate(v.ctx, v.data, v.Cap()*2)
+		v.data = mm.ReallocateAllocator(v.allocator, v.data, v.Cap()*2)
 	}
 
 	v.data[v.len] = value
@@ -113,6 +115,6 @@ func (v *Vector[T]) Set(idx int, value T) {
 
 // Free deallocats the vector
 func (v *Vector[T]) Free() {
-	mm.FreeMany(v.ctx, v.data)
-	mm.Free(v.ctx, v)
+	mm.FreeManyAllocator(v.allocator, v.data)
+	mm.FreeAllocator(v.allocator, v)
 }

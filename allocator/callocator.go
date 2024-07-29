@@ -21,3 +21,7 @@ func (c CAllocator) Realloc(ptr unsafe.Pointer, size int) unsafe.Pointer {
 }
 
 func (c CAllocator) Destroy() {}
+
+func NewC() Allocator {
+	return CAllocator{}
+}

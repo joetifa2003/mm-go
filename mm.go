@@ -15,6 +15,10 @@ func getSize[T any]() int {
 // Alloc allocates T and returns a pointer to it.
 func Alloc[T any](ctx context.Context) *T {
 	allocator := allocator.GetAllocator(ctx)
+	return AllocAllocator[T](allocator)
+}
+
+func AllocAllocator[T any](allocator allocator.Allocator) *T {
 	ptr := allocator.Alloc(getSize[T]())
 	return (*T)(unsafe.Pointer(ptr))
 }
@@ -23,6 +27,10 @@ func Alloc[T any](ctx context.Context) *T {
 // CAUTION: be careful not to double free, and prefer using defer to deallocate
 func Free[T any](ctx context.Context, ptr *T) {
 	allocator := allocator.GetAllocator(ctx)
+	FreeAllocator[T](allocator, ptr)
+}
+
+func FreeAllocator[T any](allocator allocator.Allocator, ptr *T) {
 	allocator.Free(unsafe.Pointer(ptr))
 }
 
@@ -31,6 +39,10 @@ func Free[T any](ctx context.Context, ptr *T) {
 // arithmetic with slice indexing
 func AllocMany[T any](ctx context.Context, n int) []T {
 	allocator := allocator.GetAllocator(ctx)
+	return AllocManyAllocator[T](allocator, n)
+}
+
+func AllocManyAllocator[T any](allocator allocator.Allocator, n int) []T {
 	ptr := allocator.Alloc(getSize[T]() * n)
 	return unsafe.Slice(
 		(*T)(ptr),
@@ -42,12 +54,20 @@ func AllocMany[T any](ctx context.Context, n int) []T {
 // CAUTION: be careful not to double free, and prefer using defer to deallocate
 func FreeMany[T any](ctx context.Context, slice []T) {
 	allocator := allocator.GetAllocator(ctx)
+	FreeManyAllocator[T](allocator, slice)
+}
+
+func FreeManyAllocator[T any](allocator allocator.Allocator, slice []T) {
 	allocator.Free(unsafe.Pointer(&slice[0]))
 }
 
 // Reallocate reallocates memory allocated with AllocMany and doesn't change underling data
 func Reallocate[T any](ctx context.Context, slice []T, newN int) []T {
 	allocator := allocator.GetAllocator(ctx)
+	return ReallocateAllocator[T](allocator, slice, newN)
+}
+
+func ReallocateAllocator[T any](allocator allocator.Allocator, slice []T, newN int) []T {
 	ptr := allocator.Realloc(unsafe.Pointer(&slice[0]), getSize[T]()*newN)
 	return unsafe.Slice(
 		(*T)(ptr),
