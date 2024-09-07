@@ -3,14 +3,18 @@ package vector_test
 import (
 	"testing"
 
-	"github.com/joetifa2003/mm-go/vector"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/vector"
 )
 
 func TestVector(t *testing.T) {
+	alloc := allocator.NewCallocator()
+
 	assert := assert.New(t)
 
-	v := vector.New[int]()
+	v := vector.New[int](alloc)
 	defer v.Free()
 
 	v.Push(1)
@@ -36,9 +40,10 @@ func TestVector(t *testing.T) {
 
 func TestVectorInit(t *testing.T) {
 	t.Run("Init with no args", func(t *testing.T) {
+		alloc := allocator.NewCallocator()
 		assert := assert.New(t)
 
-		v := vector.New[int]()
+		v := vector.New[int](alloc)
 		defer v.Free()
 
 		assert.Equal(0, v.Len())
@@ -46,9 +51,10 @@ func TestVectorInit(t *testing.T) {
 	})
 
 	t.Run("Init with one arg", func(t *testing.T) {
+		alloc := allocator.NewCallocator()
 		assert := assert.New(t)
 
-		v := vector.New[int](5)
+		v := vector.New[int](alloc, 5)
 		defer v.Free()
 
 		assert.Equal(5, v.Len())
@@ -56,9 +62,10 @@ func TestVectorInit(t *testing.T) {
 	})
 
 	t.Run("Init with two args", func(t *testing.T) {
+		alloc := allocator.NewCallocator()
 		assert := assert.New(t)
 
-		v := vector.New[int](5, 6)
+		v := vector.New[int](alloc, 5, 6)
 		defer v.Free()
 
 		assert.Equal(5, v.Len())
@@ -66,9 +73,10 @@ func TestVectorInit(t *testing.T) {
 	})
 
 	t.Run("Init vector with slice", func(t *testing.T) {
+		alloc := allocator.NewCallocator()
 		assert := assert.New(t)
 
-		v := vector.Init(1, 2, 3)
+		v := vector.Init(alloc, 1, 2, 3)
 		defer v.Free()
 
 		assert.Equal(3, v.Len())

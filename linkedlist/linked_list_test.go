@@ -3,14 +3,18 @@ package linkedlist_test
 import (
 	"testing"
 
-	"github.com/joetifa2003/mm-go/linkedlist"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/linkedlist"
 )
 
 func testPushAndPop(t *testing.T) {
+	alloc := allocator.NewCallocator()
+
 	assert := assert.New(t)
 
-	ll := linkedlist.New[int]()
+	ll := linkedlist.New[int](alloc)
 	defer ll.Free()
 
 	ll.PushBack(15)
@@ -48,7 +52,9 @@ func testPushAndPop(t *testing.T) {
 func testForEach(t *testing.T) {
 	assert := assert.New(t)
 
-	ll := linkedlist.New[int]()
+	alloc := allocator.NewCallocator()
+
+	ll := linkedlist.New[int](alloc)
 	defer ll.Free()
 
 	ll.PushBack(2)
@@ -70,9 +76,10 @@ func testForEach(t *testing.T) {
 }
 
 func testIndexing(t *testing.T) {
+	alloc := allocator.NewCallocator()
 	assert := assert.New(t)
 
-	ll := linkedlist.New[int]()
+	ll := linkedlist.New[int](alloc)
 	defer ll.Free()
 
 	ll.PushBack(1)
@@ -111,7 +118,9 @@ func testIndexing(t *testing.T) {
 func testRemove(t *testing.T) {
 	assert := assert.New(t)
 
-	ll := linkedlist.New[int]()
+	alloc := allocator.NewCallocator()
+
+	ll := linkedlist.New[int](alloc)
 	defer ll.Free()
 
 	ll.PushBack(1)

@@ -51,6 +51,7 @@ func New[T any](alloc allocator.Allocator, chunkSize int) *TypedArena[T] {
 	tArena := allocator.Alloc[TypedArena[T]](alloc)
 	tArena.chunkSize = chunkSize
 	tArena.chunks = vector.New[*typedChunk[T]](alloc)
+	tArena.alloc = alloc
 
 	firstChunk := newChunk[T](alloc, chunkSize)
 	tArena.chunks.Push(firstChunk)
