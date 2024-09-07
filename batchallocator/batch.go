@@ -113,7 +113,7 @@ func batchAllocaator_realloc(allocator unsafe.Pointer, ptr unsafe.Pointer, size 
 
 	copy(newPtrData, oldPtrData)
 
-	batchAllocaator_free(allocator, newPtr)
+	batchAllocaator_free(allocator, ptr)
 
 	return newPtr
 }
