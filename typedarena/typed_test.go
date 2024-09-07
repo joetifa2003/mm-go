@@ -3,14 +3,17 @@ package typedarena_test
 import (
 	"testing"
 
-	"github.com/joetifa2003/mm-go/typedarena"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/typedarena"
 )
 
 func TestTypedArena(t *testing.T) {
+	alloc := allocator.NewCallocator()
 	assert := assert.New(t)
 
-	arena := typedarena.New[int](4)
+	arena := typedarena.New[int](alloc, 4)
 	defer arena.Free()
 
 	int1 := arena.Alloc()      // allocates 1 int from arena
