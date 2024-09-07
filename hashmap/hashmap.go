@@ -3,35 +3,35 @@ package hashmap
 import (
 	"github.com/dolthub/maphash"
 
-	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/allocator"
 	"github.com/joetifa2003/mm-go/linkedlist"
 	"github.com/joetifa2003/mm-go/vector"
 )
+
+// Hashmap Manually managed hashmap,
+type Hashmap[K comparable, V any] struct {
+	pairs      *vector.Vector[*linkedlist.LinkedList[pair[K, V]]]
+	totalTaken int
+	mh         maphash.Hasher[K]
+	alloc      allocator.Allocator
+}
 
 type pair[K comparable, V any] struct {
 	key   K
 	value V
 }
 
-// Hashmap Manually managed hashmap,
-// keys can be hashmap.String, hashmap.Int or any type that
-// implements the hashmap.Hashable interface
-type Hashmap[K comparable, V any] struct {
-	pairs      *vector.Vector[*linkedlist.LinkedList[pair[K, V]]]
-	totalTaken int
-	mh         maphash.Hasher[K]
-}
-
 // New creates a new Hashmap with key of type K and value of type V
-func New[K comparable, V any]() *Hashmap[K, V] {
-	hm := mm.Alloc[Hashmap[K, V]]()
-	hm.pairs = vector.New[*linkedlist.LinkedList[pair[K, V]]](8)
+func New[K comparable, V any](alloc allocator.Allocator) *Hashmap[K, V] {
+	hm := allocator.Alloc[Hashmap[K, V]](alloc)
+	hm.pairs = vector.New[*linkedlist.LinkedList[pair[K, V]]](alloc, 8)
 	hm.mh = maphash.NewHasher[K]()
+	hm.alloc = alloc
 	return hm
 }
 
 func (hm *Hashmap[K, V]) extend() {
-	newPairs := vector.New[*linkedlist.LinkedList[pair[K, V]]](hm.pairs.Len() * 2)
+	newPairs := vector.New[*linkedlist.LinkedList[pair[K, V]]](hm.alloc, hm.pairs.Len()*2)
 	oldPairs := hm.pairs
 	defer oldPairs.Free()
 
@@ -66,7 +66,7 @@ func (hm *Hashmap[K, V]) Insert(key K, value V) {
 	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
 	if pairs == nil {
-		newPairs := linkedlist.New[pair[K, V]]()
+		newPairs := linkedlist.New[pair[K, V]](hm.alloc)
 		hm.pairs.Set(idx, newPairs)
 		pairs = newPairs
 	}
@@ -184,5 +184,5 @@ func (hm *Hashmap[K, V]) Free() {
 		}
 	}
 	hm.pairs.Free()
-	mm.Free(hm)
+	allocator.Free(hm.alloc, hm)
 }

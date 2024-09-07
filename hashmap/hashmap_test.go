@@ -1,12 +1,15 @@
 package hashmap_test
 
 import (
+	"runtime"
 	"testing"
 
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/batchallocator"
 	"github.com/joetifa2003/mm-go/hashmap"
 )
 
-const TIMES = 5000
+const TIMES = 500
 
 func BenchmarkHashmapGo(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -15,18 +18,38 @@ func BenchmarkHashmapGo(b *testing.B) {
 		for i := 0; i < TIMES; i++ {
 			h[i] = i
 		}
+
+		runtime.GC()
 	}
 }
 
-func BenchmarkHashmap(b *testing.B) {
+func BenchmarkHashmapCAlloc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		h := hashmap.New[int, int]()
+		alloc := allocator.NewCallocator()
+		h := hashmap.New[int, int](alloc)
 
 		for i := 0; i < TIMES; i++ {
 			h.Insert(i, i)
 		}
 
+		runtime.GC()
 		h.Free()
+		alloc.Destroy()
+	}
+}
+
+func BenchmarkHashmapBatchAlloc(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		alloc := batchallocator.New(allocator.NewCallocator())
+		h := hashmap.New[int, int](alloc)
+
+		for i := 0; i < TIMES; i++ {
+			h.Insert(i, i)
+		}
+
+		runtime.GC()
+		h.Free()
+		alloc.Destroy()
 	}
 }
 
