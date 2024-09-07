@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"iter"
 
-	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/allocator"
 )
 
@@ -50,7 +49,7 @@ func Init[T any](alloc allocator.Allocator, values ...T) *Vector[T] {
 // Push pushes value T to the vector, grows if needed.
 func (v *Vector[T]) Push(value T) {
 	if v.len == v.Cap() {
-		v.data = mm.Reallocate(v.data, v.Cap()*2)
+		v.data = allocator.Realloc(v.alloc, v.data, v.Cap()*2)
 	}
 
 	v.data[v.len] = value

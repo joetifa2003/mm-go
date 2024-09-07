@@ -54,10 +54,14 @@ func Alloc[T any](a Allocator) *T {
 }
 
 // FreeMany frees memory allocated by Alloc takes a ptr
+// CAUTION: be careful not to double free, and prefer using defer to deallocate
 func Free[T any](a Allocator, ptr *T) {
 	a.Free(unsafe.Pointer(ptr))
 }
 
+// AllocMany allocates n of T and returns a slice representing the heap.
+// CAUTION: don't append to the slice, the purpose of it is to replace pointer
+// arithmetic with slice indexing
 func AllocMany[T any](a Allocator, n int) []T {
 	ptr := a.Alloc(getSize[T]() * n)
 	return unsafe.Slice(
@@ -66,6 +70,17 @@ func AllocMany[T any](a Allocator, n int) []T {
 	)
 }
 
+// FreeMany frees memory allocated by AllocMany takes in the slice (aka the heap)
+// CAUTION: be careful not to double free, and prefer using defer to deallocate
 func FreeMany[T any](a Allocator, slice []T) {
 	a.Free(unsafe.Pointer(&slice[0]))
+}
+
+// Realloc reallocates memory allocated with AllocMany and doesn't change underling data
+func Realloc[T any](a Allocator, slice []T, newN int) []T {
+	ptr := a.Realloc(unsafe.Pointer(&slice[0]), getSize[T]()*newN)
+	return unsafe.Slice(
+		(*T)(ptr),
+		newN,
+	)
 }
