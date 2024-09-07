@@ -69,7 +69,9 @@ func BenchmarkBinaryTreeArena(b *testing.B) {
 				alloc.Destroy()
 			}
 		})
+	}
 
+	for _, chunkSize := range []int{50, 100, 150, 250, 500} {
 		b.Run(fmt.Sprintf("batchallocator chunk size %d", chunkSize), func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				alloc := batchallocator.New(allocator.NewCallocator())
