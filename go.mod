@@ -1,12 +1,10 @@
 module github.com/joetifa2003/mm-go
 
-go 1.20
+go 1.23
 
 require (
 	github.com/dolthub/maphash v0.1.0
-	github.com/ebitengine/purego v0.4.0-alpha.4
 	github.com/stretchr/testify v1.8.1
-	golang.org/x/sys v0.7.0
 )
 
 require (
