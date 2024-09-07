@@ -1,37 +1,35 @@
 package hashmap_test
 
 import (
-	"runtime"
 	"testing"
 
 	"github.com/joetifa2003/mm-go/hashmap"
-	"github.com/joetifa2003/mm-go/mmstring"
 )
 
 const TIMES = 5000
 
-func BenchmarkHashmap(b *testing.B) {
+func BenchmarkHashmapGo(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		h := hashmap.New[int, *mmstring.MMString]()
+		h := newMap()
 
 		for i := 0; i < TIMES; i++ {
-			h.Insert(i, mmstring.From("foo bar"))
+			h[i] = i
 		}
-
-		h.Free()
-		runtime.GC()
 	}
 }
 
-func BenchmarkHashmapGo(b *testing.B) {
+func BenchmarkHashmap(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		h := map[string]string{}
+		h := hashmap.New[int, int]()
 
 		for i := 0; i < TIMES; i++ {
-			h["foo"] = "foo bar"
+			h.Insert(i, i)
 		}
 
-		_ = h
-		runtime.GC()
+		h.Free()
 	}
+}
+
+func newMap() map[int]int {
+	return make(map[int]int)
 }

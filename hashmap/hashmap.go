@@ -1,7 +1,7 @@
 package hashmap
 
 import (
-	"github.com/mitchellh/hashstructure/v2"
+	"github.com/dolthub/maphash"
 
 	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/linkedlist"
@@ -19,12 +19,14 @@ type pair[K comparable, V any] struct {
 type Hashmap[K comparable, V any] struct {
 	pairs      *vector.Vector[*linkedlist.LinkedList[pair[K, V]]]
 	totalTaken int
+	mh         maphash.Hasher[K]
 }
 
 // New creates a new Hashmap with key of type K and value of type V
 func New[K comparable, V any]() *Hashmap[K, V] {
 	hm := mm.Alloc[Hashmap[K, V]]()
 	hm.pairs = vector.New[*linkedlist.LinkedList[pair[K, V]]](8)
+	hm.mh = maphash.NewHasher[K]()
 	return hm
 }
 
@@ -59,10 +61,7 @@ func (hm *Hashmap[K, V]) Insert(key K, value V) {
 		hm.extend()
 	}
 
-	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
-	if err != nil {
-		panic(err)
-	}
+	hash := hm.mh.Hash(key)
 
 	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
@@ -77,10 +76,7 @@ func (hm *Hashmap[K, V]) Insert(key K, value V) {
 
 // Get takes key K and return value V
 func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool) {
-	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
-	if err != nil {
-		panic(err)
-	}
+	hash := hm.mh.Hash(key)
 
 	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
@@ -100,10 +96,7 @@ func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool) {
 
 // GetPtr takes key K and return a pointer to value V
 func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool) {
-	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
-	if err != nil {
-		panic(err)
-	}
+	hash := hm.mh.Hash(key)
 
 	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
@@ -170,10 +163,7 @@ func (hm *Hashmap[K, V]) Keys() []K {
 
 // Delete delete value with key K
 func (hm *Hashmap[K, V]) Delete(key K) {
-	hash, err := hashstructure.Hash(key, hashstructure.FormatV2, nil)
-	if err != nil {
-		panic(err)
-	}
+	hash := hm.mh.Hash(key)
 
 	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
