@@ -2,20 +2,24 @@ package vector
 
 import (
 	"fmt"
+	"iter"
 
 	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/allocator"
 )
 
 // Vector a contiguous growable array type
 type Vector[T any] struct {
-	data []T
-	len  int
+	data  []T
+	len   int
+	alloc allocator.Allocator
 }
 
-func createVector[T any](len int, cap int) *Vector[T] {
-	vector := mm.Alloc[Vector[T]]()
+func createVector[T any](alloc allocator.Allocator, len int, cap int) *Vector[T] {
+	vector := allocator.Alloc[Vector[T]](alloc)
 	vector.len = len
-	vector.data = mm.AllocMany[T](cap)
+	vector.data = allocator.AllocMany[T](alloc, cap)
+	vector.alloc = alloc
 
 	return vector
 }
@@ -24,21 +28,21 @@ func createVector[T any](len int, cap int) *Vector[T] {
 // it will create an empty vector, if only one arg is provided
 // it will init a vector with len and cap equal to the provided arg,
 // if two args are provided it will init a vector with len = args[0] cap = args[1]
-func New[T any](args ...int) *Vector[T] {
+func New[T any](aloc allocator.Allocator, args ...int) *Vector[T] {
 	switch len(args) {
 	case 0:
-		return createVector[T](0, 1)
+		return createVector[T](aloc, 0, 1)
 	case 1:
-		return createVector[T](args[0], args[0])
+		return createVector[T](aloc, args[0], args[0])
 	default:
-		return createVector[T](args[0], args[1])
+		return createVector[T](aloc, args[0], args[1])
 	}
 }
 
 // Init initializes a new vector with the T elements provided and sets
 // it's len and cap to len(values)
-func Init[T any](values ...T) *Vector[T] {
-	vector := createVector[T](len(values), len(values))
+func Init[T any](alloc allocator.Allocator, values ...T) *Vector[T] {
+	vector := createVector[T](alloc, len(values), len(values))
 	copy(vector.data, values)
 	return vector
 }
@@ -110,6 +114,25 @@ func (v *Vector[T]) Set(idx int, value T) {
 
 // Free deallocats the vector
 func (v *Vector[T]) Free() {
-	mm.FreeMany(v.data)
-	mm.Free(v)
+	allocator.FreeMany[T](v.alloc, v.data)
+	allocator.Free(v.alloc, v)
+}
+
+func (v *Vector[T]) RemoveAt(idx int) {
+	if idx >= v.len {
+		panic(fmt.Sprintf("cannot remove %d in a vector with length %d", idx, v.len))
+	}
+
+	v.data[idx] = v.data[v.len-1]
+	v.len--
+}
+
+func (v *Vector[T]) Iter() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for i := 0; i < v.len; i++ {
+			if !yield(v.data[i]) {
+				return
+			}
+		}
+	}
 }
