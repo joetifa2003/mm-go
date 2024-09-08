@@ -8,6 +8,7 @@ import (
 	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/allocator"
 	"github.com/joetifa2003/mm-go/batchallocator"
+	"github.com/joetifa2003/mm-go/typedarena"
 )
 
 type Node[T any] struct {
@@ -47,6 +48,20 @@ func linkedListPushAlloc[T any](alloc allocator.Allocator, list *LinkedList[T], 
 	}
 }
 
+func linkedListPushArena[T any](arena *typedarena.TypedArena[Node[T]], list *LinkedList[T], value T) {
+	node := arena.Alloc()
+	node.value = value
+
+	if list.head == nil {
+		list.head = node
+		list.tail = node
+	} else {
+		list.tail.next = node
+		node.prev = list.tail
+		list.tail = node
+	}
+}
+
 func linkedListFree[T any](alloc allocator.Allocator, list *LinkedList[T]) {
 	currentNode := list.head
 	for currentNode != nil {
@@ -54,7 +69,6 @@ func linkedListFree[T any](alloc allocator.Allocator, list *LinkedList[T]) {
 		allocator.Free(alloc, currentNode)
 		currentNode = nextNode
 	}
-	allocator.Free(alloc, list)
 }
 
 const LINKED_LIST_SIZE = 10000
@@ -80,6 +94,33 @@ func BenchmarkLinkedListBatchAllocator(b *testing.B) {
 			}
 		})
 	}
+}
+
+func BenchmarkLinkedListTypedArena(b *testing.B) {
+	for _, chunkSize := range []int{100, 200, 500, LINKED_LIST_SIZE} {
+		b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
+			for range b.N {
+				benchLinkedListTypedArena(b, LINKED_LIST_SIZE, chunkSize)
+			}
+		})
+	}
+}
+
+func benchLinkedListTypedArena(b *testing.B, size int, chunkSize int) {
+	alloc := allocator.NewCallocator()
+	defer alloc.Destroy()
+
+	arena := typedarena.New[Node[int]](alloc, chunkSize)
+	defer arena.Free()
+
+	list := allocator.Alloc[LinkedList[int]](alloc)
+	defer allocator.Free(alloc, list)
+
+	for i := range size {
+		linkedListPushArena(arena, list, i)
+	}
+
+	assertLinkedList(b, list)
 }
 
 func benchLinkedListManaged(b *testing.B, size int) {
