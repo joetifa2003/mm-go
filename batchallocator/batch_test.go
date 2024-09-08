@@ -2,6 +2,7 @@ package batchallocator
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 
@@ -35,4 +36,17 @@ func TestBatchAllocator(t *testing.T) {
 	allocator.Free(alloc, arr)
 
 	alloc.Destroy()
+}
+
+func TestBatchAllocatorAligned(t *testing.T) {
+	assert := require.New(t)
+
+	alloc := New(allocator.NewCallocator())
+
+	x := alloc.Alloc(13)
+	y := allocator.Alloc[int](alloc)
+	*y = 2
+	_ = x
+
+	assert.Equal(0, int(uintptr(unsafe.Pointer(y))%8))
 }

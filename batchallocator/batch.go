@@ -8,7 +8,9 @@ import (
 	"github.com/joetifa2003/mm-go/minheap"
 )
 
-var pageSize = os.Getpagesize() * 15
+var pageSize = os.Getpagesize()
+
+const alignment = unsafe.Alignof(uintptr(0))
 
 type bucket struct {
 	data unsafe.Pointer
@@ -56,6 +58,11 @@ func New(a allocator.Allocator) allocator.Allocator {
 	return allocator.NewAllocator(unsafe.Pointer(ba), batchAllocaator_alloc, batchAllocaator_free, batchAllocaator_realloc, batchAllocaator_destroy)
 }
 
+func align(ptr uintptr, align uintptr) uintptr {
+	mask := align - 1
+	return (ptr + mask) &^ mask
+}
+
 func batchAllocaator_alloc(allocator unsafe.Pointer, size int) unsafe.Pointer {
 	b := (*BatchAllocator)(allocator)
 	if b.buckets == nil {
@@ -66,26 +73,42 @@ func batchAllocaator_alloc(allocator unsafe.Pointer, size int) unsafe.Pointer {
 		b.buckets.Push(newBucket(b.alloc, size))
 	}
 
-	if b.buckets.Peek().used+int(sizeOfPtrMeta)+size <= b.buckets.Peek().size {
-		bucket := b.buckets.Pop()
-		ptr := (*ptrMeta)(unsafe.Pointer(uintptr(bucket.data) + uintptr(bucket.used)))
-		bucket.used += int(sizeOfPtrMeta) + size
-		bucket.ptrs++
-		ptr.bucket = bucket
-		ptr.size = size
-		b.buckets.Push(bucket)
-
-		return unsafe.Pointer(uintptr(unsafe.Pointer(ptr)) + uintptr(sizeOfPtrMeta))
+	// Align size to be a multiple of the alignment
+	alignedSize := uintptr(size)
+	if alignedSize%alignment != 0 {
+		alignedSize = (alignedSize + alignment - 1) &^ (alignment - 1)
 	}
 
-	newBucket := newBucket(b.alloc, size)
-	newBucket.used = int(sizeOfPtrMeta) + size
+	bucket := b.buckets.Peek()
+	usedEnd := bucket.used + int(sizeOfPtrMeta) + int(alignedSize)
+
+	if usedEnd <= bucket.size {
+		bucket = b.buckets.Pop()
+
+		// Align the `bucket.data + bucket.used`
+		addr := uintptr(bucket.data) + uintptr(bucket.used)
+		alignedAddr := align(addr, alignment)
+
+		// Create the metadata structure for ptr
+		ptr := (*ptrMeta)(unsafe.Pointer(alignedAddr))
+		bucket.used = int(alignedAddr-uintptr(bucket.data)) + int(sizeOfPtrMeta) + int(alignedSize)
+		bucket.ptrs++
+		ptr.bucket = bucket
+		ptr.size = int(alignedSize)
+		b.buckets.Push(bucket)
+
+		return unsafe.Pointer(alignedAddr + uintptr(sizeOfPtrMeta))
+	}
+
+	// Bucket is too small, allocate a new bucket
+	newBucket := newBucket(b.alloc, int(alignedSize))
+	newBucket.used = int(sizeOfPtrMeta) + int(alignedSize)
 	newBucket.ptrs++
 	b.buckets.Push(newBucket)
 
-	ptr := (*ptrMeta)(unsafe.Pointer(uintptr(newBucket.data)))
+	ptr := (*ptrMeta)(unsafe.Pointer(newBucket.data))
 	ptr.bucket = newBucket
-	ptr.size = size
+	ptr.size = int(alignedSize)
 
 	return unsafe.Pointer(uintptr(unsafe.Pointer(ptr)) + uintptr(sizeOfPtrMeta))
 }
