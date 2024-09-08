@@ -34,8 +34,7 @@ func (h *MinHeap[T]) Pop() T {
 		panic("cannot pop from empty heap")
 	}
 
-	minValue := h.data.At(0)
-	h.data.RemoveAt(0)
+	minValue := h.data.RemoveAt(0)
 	h.heapifyDown(0)
 
 	return minValue
@@ -46,7 +45,7 @@ func (h *MinHeap[T]) Peek() T {
 	if h.data.Len() == 0 {
 		panic("cannot peek into empty heap")
 	}
-	return h.data.At(0)
+	return h.data.UnsafeAt(0)
 }
 
 // Len returns the number of elements in the heap.
@@ -62,7 +61,7 @@ func (h *MinHeap[T]) Free() {
 
 func (h *MinHeap[T]) Remove(f func(T) bool) {
 	for i := 0; i < h.data.Len(); i++ {
-		if f(h.data.At(i)) {
+		if f(h.data.UnsafeAt(i)) {
 			h.removeAt(i)
 			return
 		}
@@ -72,7 +71,7 @@ func (h *MinHeap[T]) Remove(f func(T) bool) {
 func (h *MinHeap[T]) heapifyUp(index int) {
 	for index > 0 {
 		parentIndex := (index - 1) / 2
-		if h.less(h.data.At(parentIndex), h.data.At(index)) {
+		if h.less(h.data.UnsafeAt(parentIndex), h.data.At(index)) {
 			break
 		}
 		h.swap(parentIndex, index)
@@ -86,11 +85,11 @@ func (h *MinHeap[T]) heapifyDown(index int) {
 		rightChildIndex := 2*index + 2
 		smallestIndex := index
 
-		if leftChildIndex < h.data.Len() && h.less(h.data.At(leftChildIndex), h.data.At(smallestIndex)) {
+		if leftChildIndex < h.data.Len() && h.less(h.data.UnsafeAt(leftChildIndex), h.data.At(smallestIndex)) {
 			smallestIndex = leftChildIndex
 		}
 
-		if rightChildIndex < h.data.Len() && h.less(h.data.At(rightChildIndex), h.data.At(smallestIndex)) {
+		if rightChildIndex < h.data.Len() && h.less(h.data.UnsafeAt(rightChildIndex), h.data.At(smallestIndex)) {
 			smallestIndex = rightChildIndex
 		}
 
@@ -104,8 +103,8 @@ func (h *MinHeap[T]) heapifyDown(index int) {
 }
 
 func (h *MinHeap[T]) swap(i, j int) {
-	temp := h.data.At(i)
-	h.data.Set(i, h.data.At(j))
+	temp := h.data.UnsafeAt(i)
+	h.data.Set(i, h.data.UnsafeAt(j))
 	h.data.Set(j, temp)
 }
 

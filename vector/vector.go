@@ -93,6 +93,11 @@ func (v *Vector[T]) At(idx int) T {
 	return v.data[idx]
 }
 
+// UnsafeAT gets element T at specified index without bounds checking
+func (v *Vector[T]) UnsafeAt(idx int) T {
+	return v.data[idx]
+}
+
 // AtPtr gets element a pointer of T at specified index
 func (v *Vector[T]) AtPtr(idx int) *T {
 	if idx >= v.len {
@@ -117,13 +122,16 @@ func (v *Vector[T]) Free() {
 	allocator.Free(v.alloc, v)
 }
 
-func (v *Vector[T]) RemoveAt(idx int) {
+func (v *Vector[T]) RemoveAt(idx int) T {
 	if idx >= v.len {
 		panic(fmt.Sprintf("cannot remove %d in a vector with length %d", idx, v.len))
 	}
 
+	tmp := v.data[idx]
 	v.data[idx] = v.data[v.len-1]
 	v.len--
+
+	return tmp
 }
 
 func (v *Vector[T]) Iter() iter.Seq[T] {
