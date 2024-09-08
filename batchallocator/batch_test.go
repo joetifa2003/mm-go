@@ -43,10 +43,10 @@ func TestBatchAllocatorAligned(t *testing.T) {
 
 	alloc := New(allocator.NewCallocator())
 
-	x := alloc.Alloc(13)
+	alloc.Alloc(13)
+	alloc.Alloc(11)
 	y := allocator.Alloc[int](alloc)
 	*y = 2
-	_ = x
 
 	assert.Equal(0, int(uintptr(unsafe.Pointer(y))%8))
 }

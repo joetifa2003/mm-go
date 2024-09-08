@@ -8,27 +8,18 @@ import (
 	"github.com/joetifa2003/mm-go/minheap"
 )
 
-var pageSize = os.Getpagesize()
+var pageSize = os.Getpagesize() //  Platform-specific alignment, usually corresponding to the word size
 
-const alignment = unsafe.Alignof(uintptr(0))
+const (
+	alignment     = unsafe.Alignof(uintptr(0))
+	sizeOfPtrMeta = unsafe.Sizeof(ptrMeta{}) // Cache the size of ptrMeta type
+)
 
 type bucket struct {
-	data unsafe.Pointer
-	used int
-	size int
-	ptrs int
-}
-
-func newBucket(a allocator.Allocator, size int) *bucket {
-	nPages := size/pageSize + 1
-	size = nPages * pageSize
-
-	b := allocator.Alloc[bucket](a)
-	b.data = a.Alloc(size)
-	b.used = 0
-	b.size = size
-
-	return b
+	data   unsafe.Pointer // Base pointer of the bucket memory
+	offset uintptr        // Number of used bytes in this bucket
+	size   uintptr        // Total size of this bucket
+	ptrs   int            // Number of pointers (allocations) inside the bucket
 }
 
 func (b *bucket) Free(a allocator.Allocator) {
@@ -36,116 +27,170 @@ func (b *bucket) Free(a allocator.Allocator) {
 	a.Free(unsafe.Pointer(b))
 }
 
-func batch_less(a, b *bucket) bool {
-	return (a.size - a.used) > (b.size - b.used)
-}
-
+// A metadata structure stored before each allocated memory block
 type ptrMeta struct {
-	bucket *bucket
-	size   int
+	bucket *bucket // Pointer back to the bucket
+	size   int     // Size of the allocated memory block
 }
 
-var sizeOfPtrMeta = unsafe.Sizeof(ptrMeta{})
-
+// BatchAllocator manages a collection of memory buckets to optimize small allocations
 type BatchAllocator struct {
-	buckets *minheap.MinHeap[*bucket]
-	alloc   allocator.Allocator
+	buckets    *minheap.MinHeap[*bucket] // Min-heap for managing buckets based on used space
+	alloc      allocator.Allocator       // Underlying raw allocator (backed by malloc/free)
+	bucketSize int                       // Configurable size for each new bucket
 }
 
-func New(a allocator.Allocator) allocator.Allocator {
-	ba := allocator.Alloc[BatchAllocator](a)
-	ba.alloc = a
-	return allocator.NewAllocator(unsafe.Pointer(ba), batchAllocaator_alloc, batchAllocaator_free, batchAllocaator_realloc, batchAllocaator_destroy)
+type BatchAllocatorOption func(alloc *BatchAllocator)
+
+// Option to specify bucket size when creating BatchAllocator
+func WithBucketSize(size int) BatchAllocatorOption {
+	return func(alloc *BatchAllocator) {
+		alloc.bucketSize = size
+	}
 }
 
-func align(ptr uintptr, align uintptr) uintptr {
-	mask := align - 1
-	return (ptr + mask) &^ mask
+// New creates a new BatchAllocator and applies optional configuration using BatchAllocatorOption
+func New(a allocator.Allocator, options ...BatchAllocatorOption) allocator.Allocator {
+	balloc := allocator.Alloc[BatchAllocator](a)
+	balloc.alloc = a
+
+	// Apply configuration options to BatchAllocator
+	for _, option := range options {
+		option(balloc)
+	}
+
+	return allocator.NewAllocator(
+		unsafe.Pointer(balloc),
+		batchAllocatorAlloc,
+		batchAllocatorFree,
+		batchAllocatorRealloc,
+		batchAllocatorDestroy,
+	)
 }
 
-func batchAllocaator_alloc(allocator unsafe.Pointer, size int) unsafe.Pointer {
-	b := (*BatchAllocator)(allocator)
-	if b.buckets == nil {
-		b.buckets = minheap.New(b.alloc, batch_less)
+// Performs the allocation from the BatchAllocator
+func batchAllocatorAlloc(allocator unsafe.Pointer, size int) unsafe.Pointer {
+	balloc := (*BatchAllocator)(allocator)
+
+	// Ensure we have a bucket to allocate from
+	ensureBucketExists(balloc, size)
+
+	// Check if the current top bucket can handle the allocation
+	currentBucket := balloc.buckets.Peek()
+
+	if currentBucket.offset+sizeOfPtrMeta+uintptr(size) <= currentBucket.size {
+		currentBucket = balloc.buckets.Pop()
+
+		freeStart := uintptr(currentBucket.data) + currentBucket.offset
+
+		// Write the allocation metadata
+		meta := (*ptrMeta)(unsafe.Pointer(freeStart))
+		meta.bucket = currentBucket
+		meta.size = size
+
+		currentBucket.offset = align(currentBucket.offset+sizeOfPtrMeta+uintptr(size), alignment)
+		currentBucket.ptrs++
+
+		balloc.buckets.Push(meta.bucket)
+
+		// Return the address of the memory after the metadata
+		return unsafe.Pointer(freeStart + uintptr(sizeOfPtrMeta))
 	}
 
-	for b.buckets.Len() == 0 {
-		b.buckets.Push(newBucket(b.alloc, size))
-	}
-
-	// Align size to be a multiple of the alignment
-	alignedSize := uintptr(size)
-	if alignedSize%alignment != 0 {
-		alignedSize = (alignedSize + alignment - 1) &^ (alignment - 1)
-	}
-
-	bucket := b.buckets.Peek()
-	usedEnd := bucket.used + int(sizeOfPtrMeta) + int(alignedSize)
-
-	if usedEnd <= bucket.size {
-		bucket = b.buckets.Pop()
-
-		// Align the `bucket.data + bucket.used`
-		addr := uintptr(bucket.data) + uintptr(bucket.used)
-		alignedAddr := align(addr, alignment)
-
-		// Create the metadata structure for ptr
-		ptr := (*ptrMeta)(unsafe.Pointer(alignedAddr))
-		bucket.used = int(alignedAddr-uintptr(bucket.data)) + int(sizeOfPtrMeta) + int(alignedSize)
-		bucket.ptrs++
-		ptr.bucket = bucket
-		ptr.size = int(alignedSize)
-		b.buckets.Push(bucket)
-
-		return unsafe.Pointer(alignedAddr + uintptr(sizeOfPtrMeta))
-	}
-
-	// Bucket is too small, allocate a new bucket
-	newBucket := newBucket(b.alloc, int(alignedSize))
-	newBucket.used = int(sizeOfPtrMeta) + int(alignedSize)
+	// If no bucket can accommodate the allocation, create a new one
+	newBucket := allocateNewBucket(balloc, size)
+	newBucket.offset = align(sizeOfPtrMeta+uintptr(size), alignment)
 	newBucket.ptrs++
-	b.buckets.Push(newBucket)
+	balloc.buckets.Push(newBucket)
 
-	ptr := (*ptrMeta)(unsafe.Pointer(newBucket.data))
-	ptr.bucket = newBucket
-	ptr.size = int(alignedSize)
+	// Write meta information at the base of the new bucket
+	meta := (*ptrMeta)(unsafe.Pointer(newBucket.data))
+	meta.bucket = newBucket
+	meta.size = size
 
-	return unsafe.Pointer(uintptr(unsafe.Pointer(ptr)) + uintptr(sizeOfPtrMeta))
+	return unsafe.Pointer(uintptr(unsafe.Pointer(meta)) + uintptr(sizeOfPtrMeta))
 }
 
-func batchAllocaator_free(allocator unsafe.Pointer, ptr unsafe.Pointer) {
-	ba := (*BatchAllocator)(allocator)
+// Frees the allocated memory by decrementing reference count and freeing bucket if empty
+func batchAllocatorFree(allocator unsafe.Pointer, ptr unsafe.Pointer) {
+	balloc := (*BatchAllocator)(allocator)
 
+	// Retrieve the metadata by moving back
 	meta := (*ptrMeta)(unsafe.Pointer(uintptr(ptr) - sizeOfPtrMeta))
 	meta.bucket.ptrs--
 
+	// If no more pointers exist in the bucket, free the bucket
 	if meta.bucket.ptrs == 0 {
-		ba.buckets.Remove(func(b *bucket) bool {
+		balloc.buckets.Remove(func(b *bucket) bool {
 			return b == meta.bucket
 		})
-		meta.bucket.Free(ba.alloc)
+		meta.bucket.Free(balloc.alloc)
 	}
 }
 
-func batchAllocaator_realloc(allocator unsafe.Pointer, ptr unsafe.Pointer, size int) unsafe.Pointer {
-	newPtr := batchAllocaator_alloc(allocator, size)
+// Reallocate a block of memory
+func batchAllocatorRealloc(allocator unsafe.Pointer, ptr unsafe.Pointer, size int) unsafe.Pointer {
+	newPtr := batchAllocatorAlloc(allocator, size)
 
-	oldPtrMeta := (*ptrMeta)(unsafe.Pointer(uintptr(ptr) - sizeOfPtrMeta))
-	oldPtrData := unsafe.Slice((*byte)(ptr), oldPtrMeta.size)
-	newPtrData := unsafe.Slice((*byte)(newPtr), size)
+	// Copy the data from the old location to the new one
+	oldMeta := (*ptrMeta)(unsafe.Pointer(uintptr(ptr) - sizeOfPtrMeta))
+	oldData := unsafe.Slice((*byte)(ptr), oldMeta.size)
+	newData := unsafe.Slice((*byte)(newPtr), size)
 
-	copy(newPtrData, oldPtrData)
+	copy(newData, oldData)
 
-	batchAllocaator_free(allocator, ptr)
+	// Free the old memory
+	batchAllocatorFree(allocator, ptr)
 
 	return newPtr
 }
 
-func batchAllocaator_destroy(alloc unsafe.Pointer) {
-	ba := (*BatchAllocator)(alloc)
-	for b := range ba.buckets.Iter() {
-		b.Free(ba.alloc)
+// Destroys the batch allocator, freeing all buckets and underlying library resources
+func batchAllocatorDestroy(a unsafe.Pointer) {
+	balloc := (*BatchAllocator)(a)
+
+	// Free all buckets in the heap
+	for b := range balloc.buckets.Iter() {
+		b.Free(balloc.alloc)
 	}
-	ba.buckets.Free()
-	allocator.Free(ba.alloc, ba)
+
+	balloc.buckets.Free()
+	allocator.Free(balloc.alloc, balloc)
+}
+
+// Helper function to handle memory alignment for a given pointer
+func align(ptr uintptr, alignment uintptr) uintptr {
+	mask := alignment - 1
+	return (ptr + mask) &^ mask
+}
+
+// Allocates a new bucket with a given size, ensuring it's a multiple of the page size
+func allocateNewBucket(balloc *BatchAllocator, size int) *bucket {
+	size = max(balloc.bucketSize, size)
+
+	nPages := size/pageSize + 1
+	bucketSize := nPages * pageSize
+
+	b := allocator.Alloc[bucket](balloc.alloc)
+	b.data = balloc.alloc.Alloc(bucketSize)
+	b.size = uintptr(bucketSize)
+	b.offset = 0
+
+	return b
+}
+
+// Pushes a new bucket into the bucket heap if needed
+func ensureBucketExists(balloc *BatchAllocator, size int) {
+	if balloc.buckets == nil {
+		balloc.buckets = minheap.New(balloc.alloc, compareBucketFreeSpace)
+	}
+
+	if balloc.buckets.Len() == 0 {
+		balloc.buckets.Push(allocateNewBucket(balloc, size))
+	}
+}
+
+// Comparison function to prioritize buckets with more available space
+func compareBucketFreeSpace(a, b *bucket) bool {
+	return (a.size - a.offset) > (b.size - b.offset)
 }
