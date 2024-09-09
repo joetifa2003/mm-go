@@ -12,7 +12,7 @@ import (
 func TestBatchAllocator(t *testing.T) {
 	assert := require.New(t)
 
-	alloc := New(allocator.NewCallocator())
+	alloc := New(allocator.NewC())
 
 	i := allocator.Alloc[int](alloc)
 	*i = 1
@@ -41,7 +41,7 @@ func TestBatchAllocator(t *testing.T) {
 func TestBatchAllocatorAligned(t *testing.T) {
 	assert := require.New(t)
 
-	alloc := New(allocator.NewCallocator())
+	alloc := New(allocator.NewC())
 
 	alloc.Alloc(13)
 	alloc.Alloc(11)

@@ -107,7 +107,7 @@ func BenchmarkLinkedListTypedArena(b *testing.B) {
 }
 
 func benchLinkedListTypedArena(b *testing.B, size int, chunkSize int) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 	defer alloc.Destroy()
 
 	arena := typedarena.New[Node[int]](alloc, chunkSize)
@@ -132,7 +132,7 @@ func benchLinkedListManaged(b *testing.B, size int) {
 }
 
 func benchLinkedListCAlloc(b *testing.B, size int) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 	defer alloc.Destroy()
 
 	list := allocator.Alloc[LinkedList[int]](alloc)
@@ -146,7 +146,7 @@ func benchLinkedListCAlloc(b *testing.B, size int) {
 }
 
 func benchLinkedListBatchAllocator(b *testing.B, size int, bucketSize int) {
-	alloc := batchallocator.New(allocator.NewCallocator(),
+	alloc := batchallocator.New(allocator.NewC(),
 		batchallocator.WithBucketSize(mm.SizeOf[Node[int]]()*bucketSize),
 	)
 	defer alloc.Destroy()

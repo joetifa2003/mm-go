@@ -10,7 +10,7 @@ import (
 )
 
 func testPushAndPop(t *testing.T) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 
 	assert := assert.New(t)
 
@@ -52,7 +52,7 @@ func testPushAndPop(t *testing.T) {
 func testForEach(t *testing.T) {
 	assert := assert.New(t)
 
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 
 	ll := linkedlist.New[int](alloc)
 	defer ll.Free()
@@ -76,7 +76,7 @@ func testForEach(t *testing.T) {
 }
 
 func testIndexing(t *testing.T) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 	assert := assert.New(t)
 
 	ll := linkedlist.New[int](alloc)
@@ -118,7 +118,7 @@ func testIndexing(t *testing.T) {
 func testRemove(t *testing.T) {
 	assert := assert.New(t)
 
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 
 	ll := linkedlist.New[int](alloc)
 	defer ll.Free()

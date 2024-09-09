@@ -10,7 +10,7 @@ import (
 )
 
 func TestVector(t *testing.T) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 
 	assert := assert.New(t)
 
@@ -40,7 +40,7 @@ func TestVector(t *testing.T) {
 
 func TestVectorInit(t *testing.T) {
 	t.Run("Init with no args", func(t *testing.T) {
-		alloc := allocator.NewCallocator()
+		alloc := allocator.NewC()
 		assert := assert.New(t)
 
 		v := vector.New[int](alloc)
@@ -51,7 +51,7 @@ func TestVectorInit(t *testing.T) {
 	})
 
 	t.Run("Init with one arg", func(t *testing.T) {
-		alloc := allocator.NewCallocator()
+		alloc := allocator.NewC()
 		assert := assert.New(t)
 
 		v := vector.New[int](alloc, 5)
@@ -62,7 +62,7 @@ func TestVectorInit(t *testing.T) {
 	})
 
 	t.Run("Init with two args", func(t *testing.T) {
-		alloc := allocator.NewCallocator()
+		alloc := allocator.NewC()
 		assert := assert.New(t)
 
 		v := vector.New[int](alloc, 5, 6)
@@ -73,7 +73,7 @@ func TestVectorInit(t *testing.T) {
 	})
 
 	t.Run("Init vector with slice", func(t *testing.T) {
-		alloc := allocator.NewCallocator()
+		alloc := allocator.NewC()
 		assert := assert.New(t)
 
 		v := vector.Init(alloc, 1, 2, 3)

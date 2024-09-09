@@ -7,7 +7,7 @@ import (
 )
 
 func TestMinHeap(t *testing.T) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 	heap := New[int](alloc, func(a, b int) bool { return a < b })
 
 	heap.Push(3)

@@ -10,7 +10,7 @@ import (
 )
 
 func TestTypedArena(t *testing.T) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 	assert := assert.New(t)
 
 	arena := typedarena.New[int](alloc, 4)

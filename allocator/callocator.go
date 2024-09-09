@@ -5,7 +5,7 @@ import "C"
 
 import "unsafe"
 
-func NewCallocator() Allocator {
+func NewC() Allocator {
 	return NewAllocator(nil, callocator_alloc, callocator_free, callocator_realloc, callocator_destroy)
 }
 

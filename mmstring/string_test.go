@@ -10,7 +10,7 @@ import (
 )
 
 func TestString(t *testing.T) {
-	alloc := allocator.NewCallocator()
+	alloc := allocator.NewC()
 	assert := assert.New(t)
 	mmString := mmstring.From(alloc, "hi")
 	defer mmString.Free()

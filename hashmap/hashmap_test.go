@@ -25,7 +25,7 @@ func BenchmarkHashmapGo(b *testing.B) {
 
 func BenchmarkHashmapCAlloc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		alloc := allocator.NewCallocator()
+		alloc := allocator.NewC()
 		h := hashmap.New[int, int](alloc)
 
 		for i := 0; i < TIMES; i++ {
@@ -40,7 +40,7 @@ func BenchmarkHashmapCAlloc(b *testing.B) {
 
 func BenchmarkHashmapBatchAlloc(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		alloc := batchallocator.New(allocator.NewCallocator())
+		alloc := batchallocator.New(allocator.NewC())
 		h := hashmap.New[int, int](alloc)
 
 		for i := 0; i < TIMES; i++ {
