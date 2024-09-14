@@ -5,6 +5,7 @@ import "C"
 
 import "unsafe"
 
+// NewC returns an allocator that uses C calloc, realloc and free.
 func NewC() Allocator {
 	return NewAllocator(nil, callocator_alloc, callocator_free, callocator_realloc, callocator_destroy)
 }

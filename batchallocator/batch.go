@@ -1,3 +1,8 @@
+// This allocator purpose is to reduce the overhead of calling CGO on every allocation/free, it also acts as an arena since it frees all the memory when `Destroy` is called.
+// It allocats large chunks of memory at once and then divides them when you allocate, making it much faster.
+// This allocator has to take another allocator for it to work, usually with the C allocator.
+// You can optionally call `Free` on the pointers allocated by batchallocator manually, and it will free the memory as soon as it can.
+// `Destroy` must be called to free internal resources and free all the memory allocated by the allocator.
 package batchallocator
 
 import (
