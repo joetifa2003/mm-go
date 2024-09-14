@@ -74,13 +74,13 @@ func ExampleRealloc() {
 	heap[1] = 70
 
 	heap = allocator.Realloc(alloc, heap, 3)
-	allocator.FreeMany(alloc, heap)
-
-	heap[3] = 100
+	heap[2] = 100
 
 	fmt.Println(heap[0])
 	fmt.Println(heap[1])
-	fmt.Println(heap[3])
+	fmt.Println(heap[2])
+
+	allocator.FreeMany(alloc, heap)
 
 	// Output:
 	// 15
