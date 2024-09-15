@@ -1,3 +1,4 @@
+// typedarena is a growable typed arena that allocates memory in fixed chunks , it's faster that batchallocator but more limited, you can use batchallocator if you want to allocate multiple different types, and you want to use an arena like behavior spanning multiple datastructures (like vector, linkedlist, hashmap etc..), typedarena is much faster when you are only allocating one type.
 package typedarena
 
 import (

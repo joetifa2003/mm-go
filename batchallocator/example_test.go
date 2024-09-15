@@ -50,7 +50,7 @@ func Example_arena() {
 func ExampleWithBucketSize() {
 	alloc := batchallocator.New(
 		allocator.NewC(),
-		batchallocator.WithBucketSize(mm.SizeOf[int]()*15), // configure the allocator to allocate size of 15 ints in one go.
+		batchallocator.WithBucketSize(mm.SizeOf[int]()*15), // configure the allocator to allocate size of 15 ints per bucket.
 	)
 	defer alloc.Destroy()
 

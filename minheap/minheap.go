@@ -59,6 +59,7 @@ func (h *MinHeap[T]) Free() {
 	allocator.Free(h.alloc, h)
 }
 
+// Remove the first element that makes f return true
 func (h *MinHeap[T]) Remove(f func(T) bool) {
 	for i := 0; i < h.data.Len(); i++ {
 		if f(h.data.UnsafeAt(i)) {
@@ -120,6 +121,7 @@ func (h *MinHeap[T]) removeAt(index int) {
 	}
 }
 
+// Iter returns an iterator over the elements of the heap.
 func (h *MinHeap[T]) Iter() iter.Seq2[int, T] {
 	return h.data.Iter()
 }

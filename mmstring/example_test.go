@@ -5,8 +5,8 @@ import (
 
 	"github.com/joetifa2003/mm-go/allocator"
 	"github.com/joetifa2003/mm-go/batchallocator"
-	"github.com/joetifa2003/mm-go/hashmap"
 	"github.com/joetifa2003/mm-go/mmstring"
+	"github.com/joetifa2003/mm-go/vector"
 )
 
 func Example() {
@@ -30,19 +30,19 @@ func Example() {
 	// Foo Bar
 }
 
-func Example_complex() {
+func Example_datastructures() {
 	alloc := batchallocator.New(allocator.NewC())
 	defer alloc.Destroy() // all the memory allocated bellow will be freed, no need to free it manually.
 
-	m := hashmap.New[*mmstring.MMString, *mmstring.MMString](alloc)
-	m.Insert(mmstring.From(alloc, "hello"), mmstring.From(alloc, "world"))
-	m.Insert(mmstring.From(alloc, "foo"), mmstring.From(alloc, "bar"))
+	m := vector.New[*mmstring.MMString](alloc)
+	m.Push(mmstring.From(alloc, "hello"))
+	m.Push(mmstring.From(alloc, "world"))
 
 	for k, v := range m.Iter() {
-		fmt.Println(k.GetGoString(), v.GetGoString())
+		fmt.Println(k, v.GetGoString())
 	}
 
 	// Output:
-	// hello world
-	// foo bar
+	// 0 hello
+	// 1 world
 }

@@ -47,14 +47,14 @@ func (hm *Hashmap[K, V]) extend() {
 		}
 
 		for _, p := range pairs.Iter() {
-			hm.Insert(p.key, p.value)
+			hm.Set(p.key, p.value)
 		}
 	}
 }
 
-// Insert inserts a new value V if key K doesn't exist,
+// Set inserts a new value V if key K doesn't exist,
 // Otherwise update the key K with value V
-func (hm *Hashmap[K, V]) Insert(key K, value V) {
+func (hm *Hashmap[K, V]) Set(key K, value V) {
 	if ptr, exists := hm.GetPtr(key); exists {
 		*ptr = value
 		return

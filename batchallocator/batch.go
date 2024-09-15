@@ -47,7 +47,8 @@ type BatchAllocator struct {
 
 type BatchAllocatorOption func(alloc *BatchAllocator)
 
-// Option to specify bucket size when creating BatchAllocator
+// WithBucketSize Option to specify bucket size when creating BatchAllocator
+// You can allocate more memory than the bucketsize in one allocation, it will allocate a new bucket and put the data in it.
 func WithBucketSize(size int) BatchAllocatorOption {
 	return func(alloc *BatchAllocator) {
 		alloc.bucketSize = size

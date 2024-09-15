@@ -29,10 +29,9 @@ func BenchmarkHashmapCAlloc(b *testing.B) {
 		h := hashmap.New[int, int](alloc)
 
 		for i := 0; i < TIMES; i++ {
-			h.Insert(i, i)
+			h.Set(i, i)
 		}
 
-		runtime.GC()
 		h.Free()
 		alloc.Destroy()
 	}
@@ -44,10 +43,9 @@ func BenchmarkHashmapBatchAlloc(b *testing.B) {
 		h := hashmap.New[int, int](alloc)
 
 		for i := 0; i < TIMES; i++ {
-			h.Insert(i, i)
+			h.Set(i, i)
 		}
 
-		runtime.GC()
 		h.Free()
 		alloc.Destroy()
 	}
