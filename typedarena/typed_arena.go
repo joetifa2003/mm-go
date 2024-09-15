@@ -1,18 +1,21 @@
+// typedarena is a growable typed arena that allocates memory in fixed chunks , it's faster that batchallocator but more limited, you can use batchallocator if you want to allocate multiple different types, and you want to use an arena like behavior spanning multiple datastructures (like vector, linkedlist, hashmap etc..), typedarena is much faster when you are only allocating one type.
 package typedarena
 
 import (
-	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/allocator"
 	"github.com/joetifa2003/mm-go/vector"
 )
 
 type typedChunk[T any] struct {
-	data []T
-	len  int
+	data  []T
+	len   int
+	alloc allocator.Allocator
 }
 
-func newChunk[T any](size int) *typedChunk[T] {
-	chunk := mm.Alloc[typedChunk[T]]()
-	chunk.data = mm.AllocMany[T](size)
+func newChunk[T any](alloc allocator.Allocator, size int) *typedChunk[T] {
+	chunk := allocator.Alloc[typedChunk[T]](alloc)
+	chunk.data = allocator.AllocMany[T](alloc, size)
+	chunk.alloc = alloc
 
 	return chunk
 }
@@ -29,14 +32,15 @@ func (c *typedChunk[T]) AllocMany(n int) []T {
 }
 
 func (c *typedChunk[T]) Free() {
-	mm.FreeMany(c.data)
-	mm.Free(c)
+	allocator.FreeMany(c.alloc, c.data)
+	allocator.Free(c.alloc, c)
 }
 
 // TypedArena is a growable typed arena
 type TypedArena[T any] struct {
 	chunks    *vector.Vector[*typedChunk[T]]
 	chunkSize int
+	alloc     allocator.Allocator
 }
 
 // New creates a typed arena with the specified chunk size.
@@ -44,12 +48,13 @@ type TypedArena[T any] struct {
 // chunk size is 5, then each chunk is going to hold 5 ints. And if the
 // chunk is filled it will allocate another chunk that can hold 5 ints.
 // then you can call FreeArena and it will deallocate all chunks together
-func New[T any](chunkSize int) *TypedArena[T] {
-	tArena := mm.Alloc[TypedArena[T]]()
+func New[T any](alloc allocator.Allocator, chunkSize int) *TypedArena[T] {
+	tArena := allocator.Alloc[TypedArena[T]](alloc)
 	tArena.chunkSize = chunkSize
-	tArena.chunks = vector.New[*typedChunk[T]]()
+	tArena.chunks = vector.New[*typedChunk[T]](alloc)
+	tArena.alloc = alloc
 
-	firstChunk := newChunk[T](chunkSize)
+	firstChunk := newChunk[T](alloc, chunkSize)
 	tArena.chunks.Push(firstChunk)
 
 	return tArena
@@ -59,7 +64,7 @@ func New[T any](chunkSize int) *TypedArena[T] {
 func (ta *TypedArena[T]) Alloc() *T {
 	lastChunk := ta.chunks.Last()
 	if lastChunk.len == ta.chunkSize {
-		nc := newChunk[T](ta.chunkSize)
+		nc := newChunk[T](ta.alloc, ta.chunkSize)
 		ta.chunks.Push(nc)
 		return nc.Alloc()
 	}
@@ -77,7 +82,7 @@ func (ta *TypedArena[T]) AllocMany(n int) []T {
 
 	lastChunk := ta.chunks.Last()
 	if lastChunk.len+n > ta.chunkSize {
-		nc := newChunk[T](ta.chunkSize)
+		nc := newChunk[T](ta.alloc, ta.chunkSize)
 		ta.chunks.Push(nc)
 		return nc.AllocMany(n)
 	}
@@ -91,5 +96,5 @@ func (ta *TypedArena[T]) Free() {
 		c.Free()
 	}
 	ta.chunks.Free()
-	mm.Free(ta)
+	allocator.Free(ta.alloc, ta)
 }

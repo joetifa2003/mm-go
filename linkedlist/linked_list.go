@@ -2,8 +2,9 @@ package linkedlist
 
 import (
 	"fmt"
+	"iter"
 
-	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/allocator"
 )
 
 var popEmptyMsg = "cannot pop empty linked list"
@@ -17,20 +18,23 @@ type linkedListNode[T any] struct {
 // LinkedList a doubly-linked list.
 // Note: can be a lot slower than Vector but sometimes faster in specific use cases
 type LinkedList[T any] struct {
+	alloc allocator.Allocator
+
 	head   *linkedListNode[T]
 	tail   *linkedListNode[T]
 	length int
 }
 
 // New creates a new linked list.
-func New[T any]() *LinkedList[T] {
-	linkedList := mm.Alloc[LinkedList[T]]()
+func New[T any](alloc allocator.Allocator) *LinkedList[T] {
+	linkedList := allocator.Alloc[LinkedList[T]](alloc)
+	linkedList.alloc = alloc
 
 	return linkedList
 }
 
 func (ll *LinkedList[T]) init(value T) {
-	ll.head = mm.Alloc[linkedListNode[T]]()
+	ll.head = allocator.Alloc[linkedListNode[T]](ll.alloc)
 	ll.head.value = value
 	ll.tail = ll.head
 	ll.length++
@@ -38,7 +42,7 @@ func (ll *LinkedList[T]) init(value T) {
 
 func (ll *LinkedList[T]) popLast() T {
 	value := ll.tail.value
-	mm.Free(ll.tail)
+	allocator.Free(ll.alloc, ll.tail)
 	ll.tail = nil
 	ll.head = nil
 	ll.length--
@@ -53,7 +57,7 @@ func (ll *LinkedList[T]) PushBack(value T) {
 		return
 	}
 
-	newNode := mm.Alloc[linkedListNode[T]]()
+	newNode := allocator.Alloc[linkedListNode[T]](ll.alloc)
 	newNode.value = value
 	newNode.prev = ll.tail
 	ll.tail.next = newNode
@@ -69,7 +73,7 @@ func (ll *LinkedList[T]) PushFront(value T) {
 		return
 	}
 
-	newNode := mm.Alloc[linkedListNode[T]]()
+	newNode := allocator.Alloc[linkedListNode[T]](ll.alloc)
 	newNode.value = value
 	newNode.next = ll.head
 	ll.head.prev = newNode
@@ -90,7 +94,7 @@ func (ll *LinkedList[T]) PopBack() T {
 	value := ll.tail.value
 	newTail := ll.tail.prev
 	newTail.next = nil
-	mm.Free(ll.tail)
+	allocator.Free(ll.alloc, ll.tail)
 	ll.tail = newTail
 	ll.length--
 
@@ -110,7 +114,7 @@ func (ll *LinkedList[T]) PopFront() T {
 	value := ll.head.value
 	newHead := ll.head.next
 	newHead.prev = nil
-	mm.Free(ll.head)
+	allocator.Free(ll.alloc, ll.head)
 	ll.head = newHead
 	ll.length--
 
@@ -126,6 +130,21 @@ func (ll *LinkedList[T]) ForEach(f func(idx int, value T)) {
 		f(idx, currentNode.value)
 		currentNode = currentNode.next
 		idx++
+	}
+}
+
+// Iter returns an iterator over the linked list values.
+func (ll *LinkedList[T]) Iter() iter.Seq2[int, T] {
+	return func(yield func(int, T) bool) {
+		idx := 0
+		currentNode := ll.head
+		for currentNode != nil {
+			if !yield(idx, currentNode.value) {
+				return
+			}
+			currentNode = currentNode.next
+			idx++
+		}
 	}
 }
 
@@ -172,7 +191,7 @@ func (ll *LinkedList[T]) RemoveAt(idx int) T {
 	prevNode.next = nextNode
 	ll.length--
 
-	mm.Free(node)
+	allocator.Free(ll.alloc, node)
 
 	return value
 }
@@ -267,9 +286,9 @@ func (ll *LinkedList[T]) Free() {
 
 	for currentNode != nil {
 		nextNode := currentNode.next
-		mm.Free(currentNode)
+		allocator.Free(ll.alloc, currentNode)
 		currentNode = nextNode
 	}
 
-	mm.Free(ll)
+	allocator.Free(ll.alloc, ll)
 }

@@ -3,13 +3,16 @@ package mmstring_test
 import (
 	"testing"
 
-	"github.com/joetifa2003/mm-go/mmstring"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/mmstring"
 )
 
 func TestString(t *testing.T) {
+	alloc := allocator.NewC()
 	assert := assert.New(t)
-	mmString := mmstring.From("hi")
+	mmString := mmstring.From(alloc, "hi")
 	defer mmString.Free()
 
 	assert.Equal('h', mmString.At(0))

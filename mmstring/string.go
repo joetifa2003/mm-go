@@ -1,9 +1,7 @@
 package mmstring
 
 import (
-	"hash/fnv"
-
-	"github.com/joetifa2003/mm-go"
+	"github.com/joetifa2003/mm-go/allocator"
 	"github.com/joetifa2003/mm-go/vector"
 )
 
@@ -11,19 +9,21 @@ import (
 // and contains all the methods of a vector plus additional helper functions
 type MMString struct {
 	*vector.Vector[rune]
+	alloc allocator.Allocator
 }
 
 // New create a new manually managed string
-func New() *MMString {
-	mmString := mm.Alloc[MMString]()
-	mmString.Vector = vector.New[rune]()
+func New(alloc allocator.Allocator) *MMString {
+	mmString := allocator.Alloc[MMString](alloc)
+	mmString.Vector = vector.New[rune](alloc)
+	mmString.alloc = alloc
 	return mmString
 }
 
 // From creates a new manually managed string,
 // And initialize it with a go string
-func From(input string) *MMString {
-	mmString := New()
+func From(alloc allocator.Allocator, input string) *MMString {
+	mmString := New(alloc)
 
 	for _, r := range input {
 		mmString.Push(r)
@@ -46,16 +46,8 @@ func (s *MMString) AppendGoString(input string) {
 	}
 }
 
-// Hash implements Hashable interface
-func (s *MMString) Hash() uint32 {
-	runes := s.Slice()
-	h := fnv.New32a()
-	h.Write([]byte(string(runes)))
-	return 0
-}
-
 // Free frees MMString
 func (s *MMString) Free() {
 	s.Vector.Free()
-	mm.Free(s)
+	allocator.Free(s.alloc, s)
 }

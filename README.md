@@ -6,55 +6,15 @@
 Golang manages memory via GC and it's good for almost every use case but sometimes it can be a bottleneck.
 and this is where mm-go comes in to play.
 
--   [mm-go Generic manual memory management for golang](#mm-go-generic-manual-memory-management-for-golang)
-    -   [Before using mm-go](#before-using-mm-go)
-    -   [Installing](#installing)
-    -   [Packages](#packages)
-    -   [typedarena](#typedarena)
-    -   [Alloc/Free](#allocfree)
-    -   [AllocMany/FreeMany](#allocmanyfreemany)
-    -   [ReAlloc](#realloc)
-    -   [vector](#vector)
-        -   [Methods](#methods)
-            -   [New](#new)
-            -   [Init](#init)
-            -   [Push](#push)
-            -   [Pop](#pop)
-            -   [Len](#len)
-            -   [Cap](#cap)
-            -   [Slice](#slice)
-            -   [Last](#last)
-            -   [At](#at)
-            -   [AtPtr](#atptr)
-            -   [Free](#free)
-    -   [linkedlist](#linkedlist)
-        -   [Methods](#methods-1)
-            -   [New](#new-1)
-            -   [PushBack](#pushback)
-            -   [PushFront](#pushfront)
-            -   [PopBack](#popback)
-            -   [PopFront](#popfront)
-            -   [ForEach](#foreach)
-            -   [At](#at-1)
-            -   [AtPtr](#atptr-1)
-            -   [RemoveAt](#removeat)
-            -   [Remove](#remove)
-            -   [RemoveAll](#removeall)
-            -   [FindIndex](#findindex)
-            -   [FindIndexes](#findindexes)
-            -   [Len](#len-1)
-            -   [Free](#free-1)
-    -   [Benchmarks](#benchmarks)
-
 ## Before using mm-go
 
 -   Golang doesn't have any way to manually allocate/free memory, so how does mm-go allocate/free?
-    It does so via cgo.
+    It does so via **cgo**.
 -   Before considering using this try to optimize your program to use less pointers, as golang GC most of the time performs worse when there is a lot of pointers, if you can't use this lib.
--   Manual memory management provides better performance (most of the time) but you are 100% responsible for managing it (bugs, segfaults, use after free, double free, ....)
--   Don't mix Manually and Managed memory (example if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead)
--   All data structures provided by the package are manually managed and thus can be safely included in manually managed structs without the GC freeing them, but you have to free them yourself!
--   Try to minimize calls to cgo by preallocating (using Arena/AllocMany).
+-   Manual memory management provides better performance (most of the time) but you are **100% responsible** for managing it (bugs, segfaults, use after free, double free, ....)
+-   **Don't mix** Manually and Managed memory (example if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct, use Vector instead)
+-   All data structures provided by the package are manually managed and thus can be safely included in manually managed structs without the GC freeing them, but **you have to free them yourself!**
+-   Try to minimize calls to cgo by preallocating (using batchallocator/Arena/AllocMany).
 -   Check the docs, test files and read the README.
 
 ## Installing
@@ -63,347 +23,55 @@ and this is where mm-go comes in to play.
 go get -u github.com/joetifa2003/mm-go
 ```
 
-## Packages
-
-`mm` - basic generic memory management functions.
-
-`typedarena` - contains TypedArena which allocates many objects and free them all at once.
-
-`vector` - contains a manually managed Vector implementation.
-
-`linkedlist` - contains a manually managed Linkedlist implementation.
-
-`mmstring` - contains a manually managed string implementation.
-
-`malloc` - contains wrappers to raw C malloc and free.
-
-## typedarena
-
-New creates a typed arena with the specified chunk size.
-a chunk is the the unit of the arena, if T is int for example and the
-chunk size is 5, then each chunk is going to hold 5 ints. And if the
-chunk is filled it will allocate another chunk that can hold 5 ints.
-then you can call FreeArena and it will deallocate all chunks together.
-Using this will simplify memory management.
+## At a glance
 
 ```go
-arena := typedarena.New[int](3) // 3 is the chunk size which gets preallocated, if you allocated more than 3 it will preallocate another chunk of 3 T
-defer arena.Free() // freeing the arena using defer to prevent leaks
-
-int1 := arena.Alloc()      // allocates 1 int from arena
-*int1 = 1                  // changing it's value
-ints := arena.AllocMany(2) // allocates 2 ints from the arena and returns a slice representing the heap (instead of pointer arithmetic)
-ints[0] = 2                // changing the first value
-ints[1] = 3                // changing the second value
-
-// you can also take pointers from the slice
-intPtr1 := &ints[0] // taking pointer from the manually managed heap
-*intPtr1 = 15 // changing the value using pointers
-
-assert.Equal(1, *int1)
-assert.Equal(2, len(ints))
-assert.Equal(15, ints[0])
-assert.Equal(3, ints[1])
-```
-
-## Alloc/Free
-
-Alloc is a generic function that allocates T and returns a pointer to it that you can free later using Free
-
-```go
-ptr := mm.Alloc[int]() // allocates a single int and returns a ptr to it
-defer mm.Free(ptr)     // frees the int (defer recommended to prevent leaks)
-
-assert.Equal(0, *ptr) // allocations are zeroed by default
-*ptr = 15             // changes the value using the pointer
-assert.Equal(15, *ptr)
-```
-
-```go
-type Node struct {
-    value int
+type MyStruct struct {
+	a int
+	b float32
 }
 
-ptr := mm.Alloc[Node]() // allocates a single Node struct and returns a ptr to it
-defer mm.Free(ptr)     // frees the struct (defer recommended to prevent leaks)
+func Example_datastructures() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy() 
+
+	p := allocator.Alloc[MyStruct](alloc)
+	defer allocator.Free(alloc, p)
+
+	p.a = 100
+	p.b = 200
+
+	fmt.Println(*p)
+
+	v := vector.New[int](alloc)
+	defer v.Free()
+	v.Push(15)
+	v.Push(70)
+
+	for _, i := range v.Iter() {
+		fmt.Println(i)
+	}
+
+	l := linkedlist.New[*mmstring.MMString](alloc)
+	defer l.Free()
+	l.PushBack(mmstring.From(alloc, "hello"))
+	l.PushBack(mmstring.From(alloc, "world"))
+
+	for _, i := range l.Iter() {
+		fmt.Println(i.GetGoString())
+	}
+
+	// Output:
+	// {100 200}
+	// 15
+	// 70
+	// hello
+	// world
+}
 ```
 
-## AllocMany/FreeMany
-
-AllocMany is a generic function that allocates n of T and returns a slice that represents the heap (instead of pointer arithmetic => slice indexing) that you can free later using FreeMany
-
-```go
-allocated := mm.AllocMany[int](2) // allocates 2 ints and returns it as a slice of ints with length 2
-defer mm.FreeMany(allocated)      // it's recommended to make sure the data gets deallocated (defer recommended to prevent leaks)
-assert.Equal(2, len(allocated))
-allocated[0] = 15    // changes the data in the slice (aka the heap)
-ptr := &allocated[0] // takes a pointer to the first int in the heap
-// Be careful if you do ptr := allocated[0] this will take a copy from the data on the heap
-*ptr = 45            // changes the value from 15 to 45
-
-assert.Equal(45, allocated[0])
-```
-
-## ReAlloc
-
-Reallocate reallocates memory allocated with AllocMany and doesn't change underling data
-
-```go
-allocated := mm.AllocMany[int](2) // allocates 2 int and returns it as a slice of ints with length 2
-allocated[0] = 15
-assert.Equal(2, len(allocated))
-allocated = mm.Reallocate(allocated, 3)
-assert.Equal(3, len(allocated))
-assert.Equal(15, allocated[0]) // data after reallocation stays the same
-mm.FreeMany(allocated)            // didn't use defer here because i'm doing a reallocation and changing the value of allocated variable (otherwise can segfault)
-```
-
-## vector
-
-A contiguous growable array type.
-You can think of the Vector as a manually managed slice that you can put in manually managed structs, if you put a slice in a manually managed struct it will get collected because go GC doesn't see the manually allocated struct.
-
-```go
-v := vector.New[int]()
-defer v.Free()
-
-v.Push(1)
-v.Push(2)
-v.Push(3)
-
-assert.Equal(3, v.Len())
-assert.Equal(4, v.Cap())
-assert.Equal([]int{1, 2, 3}, v.Slice())
-assert.Equal(3, v.Pop())
-assert.Equal(2, v.Pop())
-assert.Equal(1, v.Pop())
-```
-
-```go
-v := vector.New[int](5)
-defer v.Free()
-
-assert.Equal(5, v.Len())
-assert.Equal(5, v.Cap())
-```
-
-```go
-v := vector.New[int](5, 6)
-defer v.Free()
-
-assert.Equal(5, v.Len())
-assert.Equal(6, v.Cap())
-```
-
-```go
-v := vector.Init(1, 2, 3)
-defer v.Free()
-
-assert.Equal(3, v.Len())
-assert.Equal(3, v.Cap())
-
-assert.Equal(3, v.Pop())
-assert.Equal(2, v.Pop())
-assert.Equal(1, v.Pop())
-```
-
-### Methods
-
-#### New
-
-```go
-// New creates a new empty vector, if args not provided
-// it will create an empty vector, if only one arg is provided
-// it will init a vector with len and cap equal to the provided arg,
-// if two args are provided it will init a vector with len = args[0] cap = args[1]
-func New[T any](args ...int) *Vector[T]
-```
-
-#### Init
-
-```go
-// Init initializes a new vector with the T elements provided and sets
-// it's len and cap to len(values)
-func Init[T any](values ...T) *Vector[T]
-```
-
-#### Push
-
-```go
-// Push pushes value T to the vector, grows if needed.
-func (v *Vector[T]) Push(value T)
-```
-
-#### Pop
-
-```go
-// Pop pops value T from the vector and returns it
-func (v *Vector[T]) Pop() T
-```
-
-#### Len
-
-```go
-// Len gets vector length
-func (v *Vector[T]) Len() int
-```
-
-#### Cap
-
-```go
-// Cap gets vector capacity (underling memory length).
-func (v *Vector[T]) Cap() int
-```
-
-#### Slice
-
-```go
-// Slice gets a slice representing the vector
-// CAUTION: don't append to this slice, this is only used
-// if you want to loop on the vec elements
-func (v *Vector[T]) Slice() []T
-```
-
-#### Last
-
-```go
-// Last gets the last element from a vector
-func (v *Vector[T]) Last() T
-```
-
-#### At
-
-```go
-// At gets element T at specified index
-func (v *Vector[T]) At(idx int) T
-```
-
-#### AtPtr
-
-```go
-// AtPtr gets element a pointer of T at specified index
-func (v *Vector[T]) AtPtr(idx int) *T
-```
-
-#### Free
-
-```go
-// Free deallocats the vector
-func (v *Vector[T]) Free()
-```
-
-## linkedlist
-
-LinkedList a doubly-linked list.
-Note: can be a lot slower than Vector but sometimes faster in specific use cases
-
-### Methods
-
-#### New
-
-```go
-// New creates a new linked list.
-func New[T any]() *LinkedList[T]
-```
-
-#### PushBack
-
-```go
-// PushBack pushes value T to the back of the linked list.
-func (ll *LinkedList[T]) PushBack(value T)
-```
-
-#### PushFront
-
-```go
-// PushFront pushes value T to the back of the linked list.
-func (ll *LinkedList[T]) PushFront(value T)
-```
-
-#### PopBack
-
-```go
-// PopBack pops and returns value T from the back of the linked list.
-func (ll *LinkedList[T]) PopBack() T
-```
-
-#### PopFront
-
-```go
-// PopFront pops and returns value T from the front of the linked list.
-func (ll *LinkedList[T]) PopFront() T
-```
-
-#### ForEach
-
-```go
-// ForEach iterates through the linked list.
-func (ll *LinkedList[T]) ForEach(f func(idx int, value T))
-```
-
-#### At
-
-```go
-// At gets value T at idx.
-func (ll *LinkedList[T]) At(idx int) T
-```
-
-#### AtPtr
-
-```go
-// AtPtr gets a pointer to value T at idx.
-func (ll *LinkedList[T]) AtPtr(idx int) *T
-```
-
-#### RemoveAt
-
-```go
-// RemoveAt removes value T at specified index and returns it.
-func (ll *LinkedList[T]) RemoveAt(idx int) T
-```
-
-#### Remove
-
-```go
-// Remove removes the first value T that pass the test implemented by the provided function.
-// if the test function succeeded it will return the value and true
-func (ll *LinkedList[T]) Remove(f func(idx int, value T) bool) (value T, ok bool)
-```
-
-#### RemoveAll
-
-```go
-// RemoveAll removes all values of T that pass the test implemented by the provided function.
-func (ll *LinkedList[T]) RemoveAll(f func(idx int, value T) bool) []T
-```
-
-#### FindIndex
-
-```go
-// FindIndex returns the first index of value T that pass the test implemented by the provided function.
-func (ll *LinkedList[T]) FindIndex(f func(value T) bool) (idx int, ok bool)
-```
-
-#### FindIndexes
-
-```go
-// FindIndex returns all indexes of value T that pass the test implemented by the provided function.
-func (ll *LinkedList[T]) FindIndexes(f func(value T) bool) []int
-```
-
-#### Len
-
-```go
-// Len gets linked list length.
-func (ll *LinkedList[T]) Len() int
-```
-
-#### Free
-
-```go
-// Free frees the linked list.
-func (ll *LinkedList[T]) Free()
-```
+`mm-go` is built around the concept of Allocators, which is an interface that can be implemented and passed around to the library.
+You use these allocators to allocate memory, and also allocate datastructures like vectors, linkedlists, hashmaps, etc.
 
 ## Benchmarks
 
@@ -413,24 +81,1745 @@ mm-go can sometimes be 5-10 times faster.
 ```
 Run go test ./... -bench=. -count 5 > out.txt && benchstat out.txt
 
-name                                time/op
-pkg:github.com/joetifa2003/mm-go goos:linux goarch:amd64
-HeapManaged/node_count_10000-2       504µs ± 1%
-HeapManaged/node_count_100000-2     3.73ms ± 6%
-HeapManaged/node_count_10000000-2    664ms ± 8%
-HeapManaged/node_count_100000000-2   6.30s ± 4%
-Manual/node_count_10000-2            226µs ± 1%
-Manual/node_count_100000-2           576µs ± 1%
-Manual/node_count_10000000-2        70.6ms ± 1%
-Manual/node_count_100000000-2        702ms ± 1%
-ArenaManual/node_count_10000-2       226µs ± 1%
-ArenaManual/node_count_100000-2      553µs ± 0%
-ArenaManual/node_count_10000000-2   69.1ms ± 0%
-ArenaManual/node_count_100000000-2   681ms ± 1%
-BinaryTreeManaged-2                  6.07s ±10%
-BinaryTreeArena/chunk_size_50-2      2.30s ±21%
-BinaryTreeArena/chunk_size_100-2     1.47s ± 5%
-BinaryTreeArena/chunk_size_150-2     1.42s ±36%
-BinaryTreeArena/chunk_size_250-2     1.11s ± 0%
-BinaryTreeArena/chunk_size_500-2     1.00s ± 0%
+
+goos: linux
+goarch: amd64
+pkg: github.com/joetifa2003/mm-go
+cpu: AMD Ryzen 7 5800H with Radeon Graphics
+                                              │   out.txt    │
+                                              │    sec/op    │
+LinkedListManaged-16                            605.7µ ± ∞ ¹
+LinkedListCAlloc-16                             933.1µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_100-16     513.3µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_200-16     405.8µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_500-16     425.4µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_10000-16   200.7µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_100-16          105.3µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_200-16          95.50µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_500-16          83.02µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_10000-16        75.96µ ± ∞ ¹
+geomean                                         240.1µ
+¹ need >= 6 samples for confidence interval at level 0.95
+
+pkg: github.com/joetifa2003/mm-go/hashmap
+                     │   out.txt    │
+                     │    sec/op    │
+HashmapGo-16           210.7µ ± ∞ ¹
+HashmapCAlloc-16       189.1µ ± ∞ ¹
+HashmapBatchAlloc-16   118.2µ ± ∞ ¹
+geomean                167.6µ
+¹ need >= 6 samples for confidence interval at level 0.95
+
 ```
+
+<!-- gomarkdoc:embed:start -->
+
+<!-- Code generated by gomarkdoc. DO NOT EDIT -->
+
+# mm
+
+```go
+import "github.com/joetifa2003/mm-go"
+```
+
+## Index
+
+- [func SizeOf\[T any\]\(\) int](<#SizeOf>)
+- [func Zero\[T any\]\(\) T](<#Zero>)
+
+
+<a name="SizeOf"></a>
+## func [SizeOf](<https://github.com/joetifa2003/mm-go/blob/master/mm.go#L6>)
+
+```go
+func SizeOf[T any]() int
+```
+
+SizeOf returns the size of T in bytes
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+fmt.Println(mm.SizeOf[int32]())
+fmt.Println(mm.SizeOf[int64]())
+// Output:
+// 4
+// 8
+```
+
+#### Output
+
+```
+4
+8
+```
+
+</p>
+</details>
+
+<a name="Zero"></a>
+## func [Zero](<https://github.com/joetifa2003/mm-go/blob/master/mm.go#L12>)
+
+```go
+func Zero[T any]() T
+```
+
+Zero returns a zero value of T
+
+# allocator
+
+```go
+import "github.com/joetifa2003/mm-go/allocator"
+```
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+)
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy()
+
+	ptr := allocator.Alloc[int](alloc)
+	defer allocator.Free(alloc, ptr)
+
+	*ptr = 15
+	fmt.Println(*ptr)
+
+}
+```
+
+#### Output
+
+```
+15
+```
+
+</p>
+</details>
+
+<details><summary>Example (Datastructures)</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/linkedlist"
+	"github.com/joetifa2003/mm-go/mmstring"
+	"github.com/joetifa2003/mm-go/vector"
+)
+
+type MyStruct struct {
+	a int
+	b float32
+}
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy() // all the memory allocated bellow will be freed, no need to free it manually.
+
+	p := allocator.Alloc[MyStruct](alloc)
+	defer allocator.Free(alloc, p)
+
+	p.a = 100
+	p.b = 200
+
+	fmt.Println(*p)
+
+	v := vector.New[int](alloc)
+	defer v.Free()
+	v.Push(15)
+	v.Push(70)
+
+	for _, i := range v.Iter() {
+		fmt.Println(i)
+	}
+
+	l := linkedlist.New[*mmstring.MMString](alloc)
+	defer l.Free()
+	l.PushBack(mmstring.From(alloc, "hello"))
+	l.PushBack(mmstring.From(alloc, "world"))
+
+	for _, i := range l.Iter() {
+		fmt.Println(i.GetGoString())
+	}
+
+}
+```
+
+#### Output
+
+```
+{100 200}
+15
+70
+hello
+world
+```
+
+</p>
+</details>
+
+## Index
+
+- [func Alloc\[T any\]\(a Allocator\) \*T](<#Alloc>)
+- [func AllocMany\[T any\]\(a Allocator, n int\) \[\]T](<#AllocMany>)
+- [func Free\[T any\]\(a Allocator, ptr \*T\)](<#Free>)
+- [func FreeMany\[T any\]\(a Allocator, slice \[\]T\)](<#FreeMany>)
+- [func Realloc\[T any\]\(a Allocator, slice \[\]T, newN int\) \[\]T](<#Realloc>)
+- [type Allocator](<#Allocator>)
+  - [func NewAllocator\(allocator unsafe.Pointer, alloc func\(allocator unsafe.Pointer, size int\) unsafe.Pointer, free func\(allocator unsafe.Pointer, ptr unsafe.Pointer\), realloc func\(allocator unsafe.Pointer, ptr unsafe.Pointer, size int\) unsafe.Pointer, destroy func\(allocator unsafe.Pointer\)\) Allocator](<#NewAllocator>)
+  - [func NewC\(\) Allocator](<#NewC>)
+  - [func \(a Allocator\) Alloc\(size int\) unsafe.Pointer](<#Allocator.Alloc>)
+  - [func \(a Allocator\) Destroy\(\)](<#Allocator.Destroy>)
+  - [func \(a Allocator\) Free\(ptr unsafe.Pointer\)](<#Allocator.Free>)
+  - [func \(a Allocator\) Realloc\(ptr unsafe.Pointer, size int\) unsafe.Pointer](<#Allocator.Realloc>)
+
+
+<a name="Alloc"></a>
+## func [Alloc](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L60>)
+
+```go
+func Alloc[T any](a Allocator) *T
+```
+
+Alloc allocates T and returns a pointer to it.
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+alloc := allocator.NewC()
+defer alloc.Destroy()
+
+// So you can do this:
+ptr := allocator.Alloc[int](alloc) // allocates a single int and returns a ptr to it
+defer allocator.Free(alloc, ptr)   // frees the int (defer recommended to prevent leaks)
+*ptr = 15
+fmt.Println(*ptr)
+
+// instead of doing this:
+ptr2 := (*int)(alloc.Alloc(mm.SizeOf[int]()))
+defer alloc.Free(unsafe.Pointer(ptr2))
+*ptr2 = 15
+
+fmt.Println(*ptr2)
+
+// Output:
+// 15
+// 15
+```
+
+#### Output
+
+```
+15
+15
+```
+
+</p>
+</details>
+
+<a name="AllocMany"></a>
+## func [AllocMany](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L74>)
+
+```go
+func AllocMany[T any](a Allocator, n int) []T
+```
+
+AllocMany allocates n of T and returns a slice representing the heap. CAUTION: don't append to the slice, the purpose of it is to replace pointer arithmetic with slice indexing
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+)
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy()
+
+	heap := allocator.AllocMany[int](alloc, 2) // allocates 2 ints and returns it as a slice of ints with length 2
+	defer allocator.FreeMany(alloc, heap)      // it's recommended to make sure the data gets deallocated (defer recommended to prevent leaks)
+
+	heap[0] = 15    // changes the data in the slice (aka the heap)
+	ptr := &heap[0] // takes a pointer to the first int in the heap
+	// Be careful if you do ptr := heap[0] this will take a copy from the data on the heap
+	*ptr = 45 // changes the value from 15 to 45
+	heap[1] = 70
+
+	fmt.Println(heap[0])
+	fmt.Println(heap[1])
+
+}
+```
+
+#### Output
+
+```
+45
+70
+```
+
+</p>
+</details>
+
+<a name="Free"></a>
+## func [Free](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L67>)
+
+```go
+func Free[T any](a Allocator, ptr *T)
+```
+
+FreeMany frees memory allocated by Alloc takes a ptr CAUTION: be careful not to double free, and prefer using defer to deallocate
+
+<a name="FreeMany"></a>
+## func [FreeMany](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L84>)
+
+```go
+func FreeMany[T any](a Allocator, slice []T)
+```
+
+FreeMany frees memory allocated by AllocMany takes in the slice \(aka the heap\) CAUTION: be careful not to double free, and prefer using defer to deallocate
+
+<a name="Realloc"></a>
+## func [Realloc](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L89>)
+
+```go
+func Realloc[T any](a Allocator, slice []T, newN int) []T
+```
+
+Realloc reallocates memory allocated with AllocMany and doesn't change underling data
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+)
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy()
+
+	heap := allocator.AllocMany[int](alloc, 2) // allocates 2 int and returns it as a slice of ints with length 2
+
+	heap[0] = 15
+	heap[1] = 70
+
+	heap = allocator.Realloc(alloc, heap, 3)
+	heap[2] = 100
+
+	fmt.Println(heap[0])
+	fmt.Println(heap[1])
+	fmt.Println(heap[2])
+
+	allocator.FreeMany(alloc, heap)
+
+}
+```
+
+#### Output
+
+```
+15
+70
+100
+```
+
+</p>
+</details>
+
+<a name="Allocator"></a>
+## type [Allocator](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L7-L13>)
+
+Allocator is an interface that defines some methods needed for most allocators. It's not a golang interface, so it's safe to use in manually managed structs \(will not get garbage collected\).
+
+```go
+type Allocator struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewAllocator"></a>
+### func [NewAllocator](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L16-L22>)
+
+```go
+func NewAllocator(allocator unsafe.Pointer, alloc func(allocator unsafe.Pointer, size int) unsafe.Pointer, free func(allocator unsafe.Pointer, ptr unsafe.Pointer), realloc func(allocator unsafe.Pointer, ptr unsafe.Pointer, size int) unsafe.Pointer, destroy func(allocator unsafe.Pointer)) Allocator
+```
+
+NewAllocator creates a new Allocator
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"unsafe"
+
+	"github.com/joetifa2003/mm-go/allocator"
+)
+
+func main() {
+	// Create a custom allocator
+	alloc := allocator.NewAllocator(
+		nil,
+		myallocator_alloc,
+		myallocator_free,
+		myallocator_realloc,
+		myallocator_destroy,
+	)
+
+	// Check how C allocator is implemented
+	// or batchallocator source for a reference
+
+	_ = alloc
+}
+
+func myallocator_alloc(allocator unsafe.Pointer, size int) unsafe.Pointer {
+	return nil
+}
+
+func myallocator_free(allocator unsafe.Pointer, ptr unsafe.Pointer) {
+}
+
+func myallocator_realloc(allocator unsafe.Pointer, ptr unsafe.Pointer, size int) unsafe.Pointer {
+	return nil
+}
+
+func myallocator_destroy(allocator unsafe.Pointer) {
+}
+```
+
+</p>
+</details>
+
+<a name="NewC"></a>
+### func [NewC](<https://github.com/joetifa2003/mm-go/blob/master/allocator/callocator.go#L9>)
+
+```go
+func NewC() Allocator
+```
+
+NewC returns an allocator that uses C calloc, realloc and free.
+
+<a name="Allocator.Alloc"></a>
+### func \(Allocator\) [Alloc](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L33>)
+
+```go
+func (a Allocator) Alloc(size int) unsafe.Pointer
+```
+
+Alloc allocates size bytes and returns an unsafe pointer to it.
+
+<a name="Allocator.Destroy"></a>
+### func \(Allocator\) [Destroy](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L50>)
+
+```go
+func (a Allocator) Destroy()
+```
+
+Destroy destroys the allocator. After calling this, the allocator is no longer usable. This is useful for cleanup, freeing allocator internal resources, etc.
+
+<a name="Allocator.Free"></a>
+### func \(Allocator\) [Free](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L38>)
+
+```go
+func (a Allocator) Free(ptr unsafe.Pointer)
+```
+
+Free frees the memory pointed by ptr
+
+<a name="Allocator.Realloc"></a>
+### func \(Allocator\) [Realloc](<https://github.com/joetifa2003/mm-go/blob/master/allocator/allocator.go#L43>)
+
+```go
+func (a Allocator) Realloc(ptr unsafe.Pointer, size int) unsafe.Pointer
+```
+
+Realloc reallocates the memory pointed by ptr with a new size and returns a new pointer to it.
+
+# batchallocator
+
+```go
+import "github.com/joetifa2003/mm-go/batchallocator"
+```
+
+This allocator purpose is to reduce the overhead of calling CGO on every allocation/free, it also acts as an arena since it frees all the memory when \`Destroy\` is called. It allocats large chunks of memory at once and then divides them when you allocate, making it much faster. This allocator has to take another allocator for it to work, usually with the C allocator. You can optionally call \`Free\` on the pointers allocated by batchallocator manually, and it will free the memory as soon as it can. \`Destroy\` must be called to free internal resources and free all the memory allocated by the allocator.
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/batchallocator"
+)
+
+func main() {
+	alloc := batchallocator.New(allocator.NewC()) // by default it allocates page, which is usually 4kb
+	defer alloc.Destroy()                         // this frees all  memory allocated by the allocator automatically
+
+	ptr := allocator.Alloc[int](alloc)
+	// but you can still free the pointers manually if you want (will free buckets of memory if all pointers depending on it is freed)
+	defer allocator.Free(alloc, ptr) // this can removed and the memory will be freed.
+}
+```
+
+</p>
+</details>
+
+<details><summary>Example (Arena)</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/batchallocator"
+	"github.com/joetifa2003/mm-go/linkedlist"
+	"github.com/joetifa2003/mm-go/mmstring"
+	"github.com/joetifa2003/mm-go/vector"
+)
+
+func main() {
+	alloc := batchallocator.New(allocator.NewC())
+	defer alloc.Destroy() // all the memory allocated bellow will be freed, no need to free it manually.
+
+	v := vector.New[int](alloc)
+	v.Push(15)
+	v.Push(70)
+
+	for _, i := range v.Iter() {
+		fmt.Println(i)
+	}
+
+	l := linkedlist.New[*mmstring.MMString](alloc)
+	l.PushBack(mmstring.From(alloc, "hello"))
+	l.PushBack(mmstring.From(alloc, "world"))
+
+	for _, i := range l.Iter() {
+		fmt.Println(i.GetGoString())
+	}
+
+}
+```
+
+#### Output
+
+```
+15
+70
+hello
+world
+```
+
+</p>
+</details>
+
+## Index
+
+- [func New\(a allocator.Allocator, options ...BatchAllocatorOption\) allocator.Allocator](<#New>)
+- [type BatchAllocator](<#BatchAllocator>)
+- [type BatchAllocatorOption](<#BatchAllocatorOption>)
+  - [func WithBucketSize\(size int\) BatchAllocatorOption](<#WithBucketSize>)
+
+
+<a name="New"></a>
+## func [New](<https://github.com/joetifa2003/mm-go/blob/master/batchallocator/batch.go#L59>)
+
+```go
+func New(a allocator.Allocator, options ...BatchAllocatorOption) allocator.Allocator
+```
+
+New creates a new BatchAllocator and applies optional configuration using BatchAllocatorOption
+
+<a name="BatchAllocator"></a>
+## type [BatchAllocator](<https://github.com/joetifa2003/mm-go/blob/master/batchallocator/batch.go#L42-L46>)
+
+BatchAllocator manages a collection of memory buckets to optimize small allocations
+
+```go
+type BatchAllocator struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="BatchAllocatorOption"></a>
+## type [BatchAllocatorOption](<https://github.com/joetifa2003/mm-go/blob/master/batchallocator/batch.go#L48>)
+
+
+
+```go
+type BatchAllocatorOption func(alloc *BatchAllocator)
+```
+
+<a name="WithBucketSize"></a>
+### func [WithBucketSize](<https://github.com/joetifa2003/mm-go/blob/master/batchallocator/batch.go#L52>)
+
+```go
+func WithBucketSize(size int) BatchAllocatorOption
+```
+
+WithBucketSize Option to specify bucket size when creating BatchAllocator You can allocate more memory than the bucketsize in one allocation, it will allocate a new bucket and put the data in it.
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+alloc := batchallocator.New(
+	allocator.NewC(),
+	batchallocator.WithBucketSize(mm.SizeOf[int]()*15), // configure the allocator to allocate size of 15 ints per bucket.
+)
+defer alloc.Destroy()
+
+ptr := allocator.Alloc[int](alloc)
+defer allocator.Free(alloc, ptr) // this can be removed and the memory will still be freed on Destroy.
+
+ptr2 := allocator.Alloc[int](alloc) // will not call CGO because there is still enough memory in the Bucket.
+defer allocator.Free(alloc, ptr2)   // this can be removed and the memory will still be freed on Destroy.
+```
+
+</p>
+</details>
+
+# hashmap
+
+```go
+import "github.com/joetifa2003/mm-go/hashmap"
+```
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+alloc := batchallocator.New(allocator.NewC())
+defer alloc.Destroy()
+
+hm := New[int, int](alloc)
+defer hm.Free() // can be removed
+
+hm.Set(1, 10)
+hm.Set(2, 20)
+hm.Set(3, 30)
+
+sumKeys := 0
+sumValues := 0
+for k, v := range hm.Iter() {
+	sumKeys += k
+	sumValues += v
+}
+
+fmt.Println(sumKeys)
+fmt.Println(sumValues)
+
+// Output:
+// 6
+// 60
+```
+
+#### Output
+
+```
+6
+60
+```
+
+</p>
+</details>
+
+## Index
+
+- [type Hashmap](<#Hashmap>)
+  - [func New\[K comparable, V any\]\(alloc allocator.Allocator\) \*Hashmap\[K, V\]](<#New>)
+  - [func \(hm \*Hashmap\[K, V\]\) Delete\(key K\)](<#Hashmap[K, V].Delete>)
+  - [func \(hm \*Hashmap\[K, V\]\) Free\(\)](<#Hashmap[K, V].Free>)
+  - [func \(hm \*Hashmap\[K, V\]\) Get\(key K\) \(value V, exists bool\)](<#Hashmap[K, V].Get>)
+  - [func \(hm \*Hashmap\[K, V\]\) GetPtr\(key K\) \(value \*V, exists bool\)](<#Hashmap[K, V].GetPtr>)
+  - [func \(hm \*Hashmap\[K, V\]\) Iter\(\) iter.Seq2\[K, V\]](<#Hashmap[K, V].Iter>)
+  - [func \(hm \*Hashmap\[K, V\]\) Keys\(\) \[\]K](<#Hashmap[K, V].Keys>)
+  - [func \(hm \*Hashmap\[K, V\]\) Set\(key K, value V\)](<#Hashmap[K, V].Set>)
+  - [func \(hm \*Hashmap\[K, V\]\) Values\(\) \[\]V](<#Hashmap[K, V].Values>)
+
+
+<a name="Hashmap"></a>
+## type [Hashmap](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L15-L20>)
+
+Hashmap Manually managed hashmap,
+
+```go
+type Hashmap[K comparable, V any] struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L28>)
+
+```go
+func New[K comparable, V any](alloc allocator.Allocator) *Hashmap[K, V]
+```
+
+New creates a new Hashmap with key of type K and value of type V
+
+<a name="Hashmap[K, V].Delete"></a>
+### func \(\*Hashmap\[K, V\]\) [Delete](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L172>)
+
+```go
+func (hm *Hashmap[K, V]) Delete(key K)
+```
+
+Delete delete value with key K
+
+<a name="Hashmap[K, V].Free"></a>
+### func \(\*Hashmap\[K, V\]\) [Free](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L187>)
+
+```go
+func (hm *Hashmap[K, V]) Free()
+```
+
+Free frees the Hashmap
+
+<a name="Hashmap[K, V].Get"></a>
+### func \(\*Hashmap\[K, V\]\) [Get](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L81>)
+
+```go
+func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool)
+```
+
+Get takes key K and return value V
+
+<a name="Hashmap[K, V].GetPtr"></a>
+### func \(\*Hashmap\[K, V\]\) [GetPtr](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L101>)
+
+```go
+func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool)
+```
+
+GetPtr takes key K and return a pointer to value V
+
+<a name="Hashmap[K, V].Iter"></a>
+### func \(\*Hashmap\[K, V\]\) [Iter](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L121>)
+
+```go
+func (hm *Hashmap[K, V]) Iter() iter.Seq2[K, V]
+```
+
+Iter returns an iterator over all key/value pairs
+
+<a name="Hashmap[K, V].Keys"></a>
+### func \(\*Hashmap\[K, V\]\) [Keys](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L155>)
+
+```go
+func (hm *Hashmap[K, V]) Keys() []K
+```
+
+Keys returns all keys as a slice
+
+<a name="Hashmap[K, V].Set"></a>
+### func \(\*Hashmap\[K, V\]\) [Set](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L57>)
+
+```go
+func (hm *Hashmap[K, V]) Set(key K, value V)
+```
+
+Set inserts a new value V if key K doesn't exist, Otherwise update the key K with value V
+
+<a name="Hashmap[K, V].Values"></a>
+### func \(\*Hashmap\[K, V\]\) [Values](<https://github.com/joetifa2003/mm-go/blob/master/hashmap/hashmap.go#L138>)
+
+```go
+func (hm *Hashmap[K, V]) Values() []V
+```
+
+Values returns all values as a slice
+
+# linkedlist
+
+```go
+import "github.com/joetifa2003/mm-go/linkedlist"
+```
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+alloc := allocator.NewC()
+defer alloc.Destroy()
+
+ll := New[int](alloc)
+defer ll.Free()
+
+ll.PushBack(1)
+ll.PushBack(2)
+ll.PushBack(3)
+ll.PushBack(4)
+
+fmt.Println("PopBack:", ll.PopBack())
+fmt.Println("PopFront:", ll.PopFront())
+
+for _, i := range ll.Iter() {
+	fmt.Println(i)
+}
+
+// Output:
+// PopBack: 4
+// PopFront: 1
+// 2
+// 3
+```
+
+#### Output
+
+```
+PopBack: 4
+PopFront: 1
+2
+3
+```
+
+</p>
+</details>
+
+## Index
+
+- [type LinkedList](<#LinkedList>)
+  - [func New\[T any\]\(alloc allocator.Allocator\) \*LinkedList\[T\]](<#New>)
+  - [func \(ll \*LinkedList\[T\]\) At\(idx int\) T](<#LinkedList[T].At>)
+  - [func \(ll \*LinkedList\[T\]\) AtPtr\(idx int\) \*T](<#LinkedList[T].AtPtr>)
+  - [func \(ll \*LinkedList\[T\]\) FindIndex\(f func\(value T\) bool\) \(idx int, ok bool\)](<#LinkedList[T].FindIndex>)
+  - [func \(ll \*LinkedList\[T\]\) FindIndexes\(f func\(value T\) bool\) \[\]int](<#LinkedList[T].FindIndexes>)
+  - [func \(ll \*LinkedList\[T\]\) ForEach\(f func\(idx int, value T\)\)](<#LinkedList[T].ForEach>)
+  - [func \(ll \*LinkedList\[T\]\) Free\(\)](<#LinkedList[T].Free>)
+  - [func \(ll \*LinkedList\[T\]\) Iter\(\) iter.Seq2\[int, T\]](<#LinkedList[T].Iter>)
+  - [func \(ll \*LinkedList\[T\]\) Len\(\) int](<#LinkedList[T].Len>)
+  - [func \(ll \*LinkedList\[T\]\) PopBack\(\) T](<#LinkedList[T].PopBack>)
+  - [func \(ll \*LinkedList\[T\]\) PopFront\(\) T](<#LinkedList[T].PopFront>)
+  - [func \(ll \*LinkedList\[T\]\) PushBack\(value T\)](<#LinkedList[T].PushBack>)
+  - [func \(ll \*LinkedList\[T\]\) PushFront\(value T\)](<#LinkedList[T].PushFront>)
+  - [func \(ll \*LinkedList\[T\]\) Remove\(f func\(idx int, value T\) bool\) \(value T, ok bool\)](<#LinkedList[T].Remove>)
+  - [func \(ll \*LinkedList\[T\]\) RemoveAll\(f func\(idx int, value T\) bool\) \[\]T](<#LinkedList[T].RemoveAll>)
+  - [func \(ll \*LinkedList\[T\]\) RemoveAt\(idx int\) T](<#LinkedList[T].RemoveAt>)
+
+
+<a name="LinkedList"></a>
+## type [LinkedList](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L20-L26>)
+
+LinkedList a doubly\-linked list. Note: can be a lot slower than Vector but sometimes faster in specific use cases
+
+```go
+type LinkedList[T any] struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L29>)
+
+```go
+func New[T any](alloc allocator.Allocator) *LinkedList[T]
+```
+
+New creates a new linked list.
+
+<a name="LinkedList[T].At"></a>
+### func \(\*LinkedList\[T\]\) [At](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L167>)
+
+```go
+func (ll *LinkedList[T]) At(idx int) T
+```
+
+At gets value T at idx.
+
+<a name="LinkedList[T].AtPtr"></a>
+### func \(\*LinkedList\[T\]\) [AtPtr](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L172>)
+
+```go
+func (ll *LinkedList[T]) AtPtr(idx int) *T
+```
+
+AtPtr gets a pointer to value T at idx.
+
+<a name="LinkedList[T].FindIndex"></a>
+### func \(\*LinkedList\[T\]\) [FindIndex](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L241>)
+
+```go
+func (ll *LinkedList[T]) FindIndex(f func(value T) bool) (idx int, ok bool)
+```
+
+FindIndex returns the first index of value T that pass the test implemented by the provided function.
+
+<a name="LinkedList[T].FindIndexes"></a>
+### func \(\*LinkedList\[T\]\) [FindIndexes](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L259>)
+
+```go
+func (ll *LinkedList[T]) FindIndexes(f func(value T) bool) []int
+```
+
+FindIndex returns all indexes of value T that pass the test implemented by the provided function.
+
+<a name="LinkedList[T].ForEach"></a>
+### func \(\*LinkedList\[T\]\) [ForEach](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L125>)
+
+```go
+func (ll *LinkedList[T]) ForEach(f func(idx int, value T))
+```
+
+ForEach iterates through the linked list.
+
+<a name="LinkedList[T].Free"></a>
+### func \(\*LinkedList\[T\]\) [Free](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L284>)
+
+```go
+func (ll *LinkedList[T]) Free()
+```
+
+Free frees the linked list.
+
+<a name="LinkedList[T].Iter"></a>
+### func \(\*LinkedList\[T\]\) [Iter](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L137>)
+
+```go
+func (ll *LinkedList[T]) Iter() iter.Seq2[int, T]
+```
+
+Iter returns an iterator over the linked list values.
+
+<a name="LinkedList[T].Len"></a>
+### func \(\*LinkedList\[T\]\) [Len](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L279>)
+
+```go
+func (ll *LinkedList[T]) Len() int
+```
+
+Len gets linked list length.
+
+<a name="LinkedList[T].PopBack"></a>
+### func \(\*LinkedList\[T\]\) [PopBack](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L85>)
+
+```go
+func (ll *LinkedList[T]) PopBack() T
+```
+
+PopBack pops and returns value T from the back of the linked list.
+
+<a name="LinkedList[T].PopFront"></a>
+### func \(\*LinkedList\[T\]\) [PopFront](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L105>)
+
+```go
+func (ll *LinkedList[T]) PopFront() T
+```
+
+PopFront pops and returns value T from the front of the linked list.
+
+<a name="LinkedList[T].PushBack"></a>
+### func \(\*LinkedList\[T\]\) [PushBack](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L53>)
+
+```go
+func (ll *LinkedList[T]) PushBack(value T)
+```
+
+PushBack pushes value T to the back of the linked list.
+
+<a name="LinkedList[T].PushFront"></a>
+### func \(\*LinkedList\[T\]\) [PushFront](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L69>)
+
+```go
+func (ll *LinkedList[T]) PushFront(value T)
+```
+
+PushFront pushes value T to the back of the linked list.
+
+<a name="LinkedList[T].Remove"></a>
+### func \(\*LinkedList\[T\]\) [Remove](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L201>)
+
+```go
+func (ll *LinkedList[T]) Remove(f func(idx int, value T) bool) (value T, ok bool)
+```
+
+Remove removes the first value T that pass the test implemented by the provided function. if the test succeeded it will return the value and true
+
+<a name="LinkedList[T].RemoveAll"></a>
+### func \(\*LinkedList\[T\]\) [RemoveAll](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L220>)
+
+```go
+func (ll *LinkedList[T]) RemoveAll(f func(idx int, value T) bool) []T
+```
+
+RemoveAll removes all values of T that pass the test implemented by the provided function.
+
+<a name="LinkedList[T].RemoveAt"></a>
+### func \(\*LinkedList\[T\]\) [RemoveAt](<https://github.com/joetifa2003/mm-go/blob/master/linkedlist/linked_list.go#L177>)
+
+```go
+func (ll *LinkedList[T]) RemoveAt(idx int) T
+```
+
+RemoveAt removes value T at specified index and returns it.
+
+# minheap
+
+```go
+import "github.com/joetifa2003/mm-go/minheap"
+```
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/minheap"
+)
+
+func int_less(a, b int) bool { return a < b }
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy()
+
+	h := minheap.New[int](alloc, int_less)
+
+	// Push some values onto the heap
+	h.Push(2)
+	h.Push(1)
+	h.Push(4)
+	h.Push(3)
+	h.Push(5)
+
+	// Pop the minimum value from the heap
+	fmt.Println(h.Pop())
+	fmt.Println(h.Pop())
+
+}
+```
+
+#### Output
+
+```
+1
+2
+```
+
+</p>
+</details>
+
+<details><summary>Example (-ax Heap)</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/minheap"
+)
+
+func int_greater(a, b int) bool { return a > b }
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy()
+
+	h := minheap.New[int](alloc, int_greater)
+
+	// Push some values onto the heap
+	h.Push(2)
+	h.Push(1)
+	h.Push(4)
+	h.Push(3)
+	h.Push(5)
+
+	// Pop the max value from the heap
+	fmt.Println(h.Pop())
+	fmt.Println(h.Pop())
+
+}
+```
+
+#### Output
+
+```
+5
+4
+```
+
+</p>
+</details>
+
+## Index
+
+- [type MinHeap](<#MinHeap>)
+  - [func New\[T any\]\(alloc allocator.Allocator, less func\(a, b T\) bool\) \*MinHeap\[T\]](<#New>)
+  - [func \(h \*MinHeap\[T\]\) Free\(\)](<#MinHeap[T].Free>)
+  - [func \(h \*MinHeap\[T\]\) Iter\(\) iter.Seq2\[int, T\]](<#MinHeap[T].Iter>)
+  - [func \(h \*MinHeap\[T\]\) Len\(\) int](<#MinHeap[T].Len>)
+  - [func \(h \*MinHeap\[T\]\) Peek\(\) T](<#MinHeap[T].Peek>)
+  - [func \(h \*MinHeap\[T\]\) Pop\(\) T](<#MinHeap[T].Pop>)
+  - [func \(h \*MinHeap\[T\]\) Push\(value T\)](<#MinHeap[T].Push>)
+  - [func \(h \*MinHeap\[T\]\) Remove\(f func\(T\) bool\)](<#MinHeap[T].Remove>)
+
+
+<a name="MinHeap"></a>
+## type [MinHeap](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L10-L14>)
+
+
+
+```go
+type MinHeap[T any] struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L17>)
+
+```go
+func New[T any](alloc allocator.Allocator, less func(a, b T) bool) *MinHeap[T]
+```
+
+New creates a new MinHeap.
+
+<a name="MinHeap[T].Free"></a>
+### func \(\*MinHeap\[T\]\) [Free](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L57>)
+
+```go
+func (h *MinHeap[T]) Free()
+```
+
+Free frees the heap.
+
+<a name="MinHeap[T].Iter"></a>
+### func \(\*MinHeap\[T\]\) [Iter](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L125>)
+
+```go
+func (h *MinHeap[T]) Iter() iter.Seq2[int, T]
+```
+
+Iter returns an iterator over the elements of the heap.
+
+<a name="MinHeap[T].Len"></a>
+### func \(\*MinHeap\[T\]\) [Len](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L52>)
+
+```go
+func (h *MinHeap[T]) Len() int
+```
+
+Len returns the number of elements in the heap.
+
+<a name="MinHeap[T].Peek"></a>
+### func \(\*MinHeap\[T\]\) [Peek](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L44>)
+
+```go
+func (h *MinHeap[T]) Peek() T
+```
+
+Peek returns the minimum value from the heap without removing it.
+
+<a name="MinHeap[T].Pop"></a>
+### func \(\*MinHeap\[T\]\) [Pop](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L32>)
+
+```go
+func (h *MinHeap[T]) Pop() T
+```
+
+Pop removes and returns the minimum value from the heap.
+
+<a name="MinHeap[T].Push"></a>
+### func \(\*MinHeap\[T\]\) [Push](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L26>)
+
+```go
+func (h *MinHeap[T]) Push(value T)
+```
+
+Push adds a value to the heap.
+
+<a name="MinHeap[T].Remove"></a>
+### func \(\*MinHeap\[T\]\) [Remove](<https://github.com/joetifa2003/mm-go/blob/master/minheap/minheap.go#L63>)
+
+```go
+func (h *MinHeap[T]) Remove(f func(T) bool)
+```
+
+Remove the first element that makes f return true
+
+# mmstring
+
+```go
+import "github.com/joetifa2003/mm-go/mmstring"
+```
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/mmstring"
+)
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy()
+
+	s := mmstring.New(alloc)
+	defer s.Free()
+
+	s.AppendGoString("Hello ")
+	s.AppendGoString("World")
+
+	s2 := mmstring.From(alloc, "Foo Bar")
+	defer s2.Free()
+
+	fmt.Println(s.GetGoString())
+	fmt.Println(s2.GetGoString())
+
+}
+```
+
+#### Output
+
+```
+Hello World
+Foo Bar
+```
+
+</p>
+</details>
+
+<details><summary>Example (Datastructures)</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/batchallocator"
+	"github.com/joetifa2003/mm-go/mmstring"
+	"github.com/joetifa2003/mm-go/vector"
+)
+
+func main() {
+	alloc := batchallocator.New(allocator.NewC())
+	defer alloc.Destroy() // all the memory allocated bellow will be freed, no need to free it manually.
+
+	m := vector.New[*mmstring.MMString](alloc)
+	m.Push(mmstring.From(alloc, "hello"))
+	m.Push(mmstring.From(alloc, "world"))
+
+	for k, v := range m.Iter() {
+		fmt.Println(k, v.GetGoString())
+	}
+
+}
+```
+
+#### Output
+
+```
+0 hello
+1 world
+```
+
+</p>
+</details>
+
+## Index
+
+- [type MMString](<#MMString>)
+  - [func From\(alloc allocator.Allocator, input string\) \*MMString](<#From>)
+  - [func New\(alloc allocator.Allocator\) \*MMString](<#New>)
+  - [func \(s \*MMString\) AppendGoString\(input string\)](<#MMString.AppendGoString>)
+  - [func \(s \*MMString\) Free\(\)](<#MMString.Free>)
+  - [func \(s \*MMString\) GetGoString\(\) string](<#MMString.GetGoString>)
+
+
+<a name="MMString"></a>
+## type [MMString](<https://github.com/joetifa2003/mm-go/blob/master/mmstring/string.go#L10-L13>)
+
+MMString is a manually manged string that is basically a \*Vector\[rune\] and contains all the methods of a vector plus additional helper functions
+
+```go
+type MMString struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="From"></a>
+### func [From](<https://github.com/joetifa2003/mm-go/blob/master/mmstring/string.go#L25>)
+
+```go
+func From(alloc allocator.Allocator, input string) *MMString
+```
+
+From creates a new manually managed string, And initialize it with a go string
+
+<a name="New"></a>
+### func [New](<https://github.com/joetifa2003/mm-go/blob/master/mmstring/string.go#L16>)
+
+```go
+func New(alloc allocator.Allocator) *MMString
+```
+
+New create a new manually managed string
+
+<a name="MMString.AppendGoString"></a>
+### func \(\*MMString\) [AppendGoString](<https://github.com/joetifa2003/mm-go/blob/master/mmstring/string.go#L43>)
+
+```go
+func (s *MMString) AppendGoString(input string)
+```
+
+AppendGoString appends go string to manually managed string
+
+<a name="MMString.Free"></a>
+### func \(\*MMString\) [Free](<https://github.com/joetifa2003/mm-go/blob/master/mmstring/string.go#L50>)
+
+```go
+func (s *MMString) Free()
+```
+
+Free frees MMString
+
+<a name="MMString.GetGoString"></a>
+### func \(\*MMString\) [GetGoString](<https://github.com/joetifa2003/mm-go/blob/master/mmstring/string.go#L37>)
+
+```go
+func (s *MMString) GetGoString() string
+```
+
+GetGoString returns go string from manually managed string. CAUTION: You also have to free the MMString
+
+# typedarena
+
+```go
+import "github.com/joetifa2003/mm-go/typedarena"
+```
+
+typedarena is a growable typed arena that allocates memory in fixed chunks , it's faster that batchallocator but more limited, you can use batchallocator if you want to allocate multiple different types, and you want to use an arena like behavior spanning multiple datastructures \(like vector, linkedlist, hashmap etc..\), typedarena is much faster when you are only allocating one type.
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/typedarena"
+)
+
+type Entity struct {
+	VelocityX float32
+	VelocityY float32
+	PositionX float32
+	PositionY float32
+}
+
+func main() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy()
+
+	arena := typedarena.New[Entity](
+		alloc,
+		10,
+	)
+	defer arena.Free() // frees all memory
+
+	for i := 0; i < 10; i++ {
+		e := arena.Alloc() // *Entity
+		e.VelocityX = float32(i)
+		e.VelocityY = float32(i)
+		e.PositionX = float32(i)
+		e.PositionY = float32(i)
+		fmt.Println(e.VelocityX, e.VelocityY, e.PositionX, e.PositionY)
+	}
+
+	entities := arena.AllocMany(10) // allocate slice of 10 entities (cannot exceed 10 here because chunk size is 10 above, this limitation doesn't exist in batchallocator)
+
+	_ = entities
+
+}
+```
+
+#### Output
+
+```
+0 0 0 0
+1 1 1 1
+2 2 2 2
+3 3 3 3
+4 4 4 4
+5 5 5 5
+6 6 6 6
+7 7 7 7
+8 8 8 8
+9 9 9 9
+```
+
+</p>
+</details>
+
+## Index
+
+- [type TypedArena](<#TypedArena>)
+  - [func New\[T any\]\(alloc allocator.Allocator, chunkSize int\) \*TypedArena\[T\]](<#New>)
+  - [func \(ta \*TypedArena\[T\]\) Alloc\(\) \*T](<#TypedArena[T].Alloc>)
+  - [func \(ta \*TypedArena\[T\]\) AllocMany\(n int\) \[\]T](<#TypedArena[T].AllocMany>)
+  - [func \(ta \*TypedArena\[T\]\) Free\(\)](<#TypedArena[T].Free>)
+
+
+<a name="TypedArena"></a>
+## type [TypedArena](<https://github.com/joetifa2003/mm-go/blob/master/typedarena/typed_arena.go#L40-L44>)
+
+TypedArena is a growable typed arena
+
+```go
+type TypedArena[T any] struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/joetifa2003/mm-go/blob/master/typedarena/typed_arena.go#L51>)
+
+```go
+func New[T any](alloc allocator.Allocator, chunkSize int) *TypedArena[T]
+```
+
+New creates a typed arena with the specified chunk size. a chunk is the the unit of the arena, if T is int for example and the chunk size is 5, then each chunk is going to hold 5 ints. And if the chunk is filled it will allocate another chunk that can hold 5 ints. then you can call FreeArena and it will deallocate all chunks together
+
+<a name="TypedArena[T].Alloc"></a>
+### func \(\*TypedArena\[T\]\) [Alloc](<https://github.com/joetifa2003/mm-go/blob/master/typedarena/typed_arena.go#L64>)
+
+```go
+func (ta *TypedArena[T]) Alloc() *T
+```
+
+Alloc allocates T from the arena
+
+<a name="TypedArena[T].AllocMany"></a>
+### func \(\*TypedArena\[T\]\) [AllocMany](<https://github.com/joetifa2003/mm-go/blob/master/typedarena/typed_arena.go#L78>)
+
+```go
+func (ta *TypedArena[T]) AllocMany(n int) []T
+```
+
+AllocMany allocates n of T and returns a slice representing the heap. CAUTION: don't append to the slice, the purpose of it is to replace pointer arithmetic with slice indexing CAUTION: n cannot exceed chunk size
+
+<a name="TypedArena[T].Free"></a>
+### func \(\*TypedArena\[T\]\) [Free](<https://github.com/joetifa2003/mm-go/blob/master/typedarena/typed_arena.go#L94>)
+
+```go
+func (ta *TypedArena[T]) Free()
+```
+
+Free frees all allocated memory
+
+# vector
+
+```go
+import "github.com/joetifa2003/mm-go/vector"
+```
+
+<details><summary>Example</summary>
+<p>
+
+
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/vector"
+)
+
+func main() {
+	alloc := allocator.NewC()
+	v := vector.New[int](alloc)
+	v.Push(1)
+	v.Push(2)
+	v.Push(3)
+
+	fmt.Println("Length:", v.Len())
+	for i := 0; i < v.Len(); i++ {
+		fmt.Println(v.At(i))
+	}
+
+	for _, k := range v.Iter() {
+		fmt.Println(k)
+	}
+
+}
+```
+
+#### Output
+
+```
+Length: 3
+1
+2
+3
+1
+2
+3
+```
+
+</p>
+</details>
+
+## Index
+
+- [type Vector](<#Vector>)
+  - [func Init\[T any\]\(alloc allocator.Allocator, values ...T\) \*Vector\[T\]](<#Init>)
+  - [func New\[T any\]\(aloc allocator.Allocator, args ...int\) \*Vector\[T\]](<#New>)
+  - [func \(v \*Vector\[T\]\) At\(idx int\) T](<#Vector[T].At>)
+  - [func \(v \*Vector\[T\]\) AtPtr\(idx int\) \*T](<#Vector[T].AtPtr>)
+  - [func \(v \*Vector\[T\]\) Cap\(\) int](<#Vector[T].Cap>)
+  - [func \(v \*Vector\[T\]\) Free\(\)](<#Vector[T].Free>)
+  - [func \(v \*Vector\[T\]\) Iter\(\) iter.Seq2\[int, T\]](<#Vector[T].Iter>)
+  - [func \(v \*Vector\[T\]\) Last\(\) T](<#Vector[T].Last>)
+  - [func \(v \*Vector\[T\]\) Len\(\) int](<#Vector[T].Len>)
+  - [func \(v \*Vector\[T\]\) Pop\(\) T](<#Vector[T].Pop>)
+  - [func \(v \*Vector\[T\]\) Push\(value T\)](<#Vector[T].Push>)
+  - [func \(v \*Vector\[T\]\) RemoveAt\(idx int\) T](<#Vector[T].RemoveAt>)
+  - [func \(v \*Vector\[T\]\) Set\(idx int, value T\)](<#Vector[T].Set>)
+  - [func \(v \*Vector\[T\]\) Slice\(\) \[\]T](<#Vector[T].Slice>)
+  - [func \(v \*Vector\[T\]\) UnsafeAt\(idx int\) T](<#Vector[T].UnsafeAt>)
+
+
+<a name="Vector"></a>
+## type [Vector](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L11-L15>)
+
+Vector a contiguous growable array type
+
+```go
+type Vector[T any] struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="Init"></a>
+### func [Init](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L43>)
+
+```go
+func Init[T any](alloc allocator.Allocator, values ...T) *Vector[T]
+```
+
+Init initializes a new vector with the T elements provided and sets it's len and cap to len\(values\)
+
+<a name="New"></a>
+### func [New](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L30>)
+
+```go
+func New[T any](aloc allocator.Allocator, args ...int) *Vector[T]
+```
+
+New creates a new empty vector, if args not provided it will create an empty vector, if only one arg is provided it will init a vector with len and cap equal to the provided arg, if two args are provided it will init a vector with len = args\[0\] cap = args\[1\]
+
+<a name="Vector[T].At"></a>
+### func \(\*Vector\[T\]\) [At](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L88>)
+
+```go
+func (v *Vector[T]) At(idx int) T
+```
+
+At gets element T at specified index
+
+<a name="Vector[T].AtPtr"></a>
+### func \(\*Vector\[T\]\) [AtPtr](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L102>)
+
+```go
+func (v *Vector[T]) AtPtr(idx int) *T
+```
+
+AtPtr gets element a pointer of T at specified index
+
+<a name="Vector[T].Cap"></a>
+### func \(\*Vector\[T\]\) [Cap](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L71>)
+
+```go
+func (v *Vector[T]) Cap() int
+```
+
+Cap gets vector capacity \(underling memory length\).
+
+<a name="Vector[T].Free"></a>
+### func \(\*Vector\[T\]\) [Free](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L120>)
+
+```go
+func (v *Vector[T]) Free()
+```
+
+Free deallocats the vector
+
+<a name="Vector[T].Iter"></a>
+### func \(\*Vector\[T\]\) [Iter](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L138>)
+
+```go
+func (v *Vector[T]) Iter() iter.Seq2[int, T]
+```
+
+Iter iterates over the vector
+
+<a name="Vector[T].Last"></a>
+### func \(\*Vector\[T\]\) [Last](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L83>)
+
+```go
+func (v *Vector[T]) Last() T
+```
+
+Last gets the last element from a vector
+
+<a name="Vector[T].Len"></a>
+### func \(\*Vector\[T\]\) [Len](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L66>)
+
+```go
+func (v *Vector[T]) Len() int
+```
+
+Len gets vector length
+
+<a name="Vector[T].Pop"></a>
+### func \(\*Vector\[T\]\) [Pop](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L60>)
+
+```go
+func (v *Vector[T]) Pop() T
+```
+
+Pop pops value T from the vector and returns it
+
+<a name="Vector[T].Push"></a>
+### func \(\*Vector\[T\]\) [Push](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L50>)
+
+```go
+func (v *Vector[T]) Push(value T)
+```
+
+Push pushes value T to the vector, grows if needed.
+
+<a name="Vector[T].RemoveAt"></a>
+### func \(\*Vector\[T\]\) [RemoveAt](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L125>)
+
+```go
+func (v *Vector[T]) RemoveAt(idx int) T
+```
+
+
+
+<a name="Vector[T].Set"></a>
+### func \(\*Vector\[T\]\) [Set](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L111>)
+
+```go
+func (v *Vector[T]) Set(idx int, value T)
+```
+
+Set sets element T at specified index
+
+<a name="Vector[T].Slice"></a>
+### func \(\*Vector\[T\]\) [Slice](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L78>)
+
+```go
+func (v *Vector[T]) Slice() []T
+```
+
+Slice gets a slice representing the vector CAUTION: don't append to this slice, this is only used if you want to loop on the vec elements
+
+<a name="Vector[T].UnsafeAt"></a>
+### func \(\*Vector\[T\]\) [UnsafeAt](<https://github.com/joetifa2003/mm-go/blob/master/vector/vector.go#L97>)
+
+```go
+func (v *Vector[T]) UnsafeAt(idx int) T
+```
+
+UnsafeAT gets element T at specified index without bounds checking
+
+Generated by [gomarkdoc](<https://github.com/princjef/gomarkdoc>)
+
+
+<!-- gomarkdoc:embed:end -->
+
+
