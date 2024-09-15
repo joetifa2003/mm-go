@@ -6,9 +6,12 @@ import (
 
 	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/allocator"
+	"github.com/joetifa2003/mm-go/linkedlist"
+	"github.com/joetifa2003/mm-go/mmstring"
+	"github.com/joetifa2003/mm-go/vector"
 )
 
-func ExampleNewC() {
+func Example() {
 	alloc := allocator.NewC()
 	defer alloc.Destroy()
 
@@ -19,6 +22,49 @@ func ExampleNewC() {
 	fmt.Println(*ptr)
 
 	// Output: 15
+}
+
+type MyStruct struct {
+	a int
+	b float32
+}
+
+func Example_datastructures() {
+	alloc := allocator.NewC()
+	defer alloc.Destroy() // all the memory allocated bellow will be freed, no need to free it manually.
+
+	p := allocator.Alloc[MyStruct](alloc)
+	defer allocator.Free(alloc, p)
+
+	p.a = 100
+	p.b = 200
+
+	fmt.Println(*p)
+
+	v := vector.New[int](alloc)
+	defer v.Free()
+	v.Push(15)
+	v.Push(70)
+
+	for _, i := range v.Iter() {
+		fmt.Println(i)
+	}
+
+	l := linkedlist.New[*mmstring.MMString](alloc)
+	defer l.Free()
+	l.PushBack(mmstring.From(alloc, "hello"))
+	l.PushBack(mmstring.From(alloc, "world"))
+
+	for _, i := range l.Iter() {
+		fmt.Println(i.GetGoString())
+	}
+
+	// Output:
+	// {100 200}
+	// 15
+	// 70
+	// hello
+	// world
 }
 
 func ExampleAlloc() {
@@ -99,7 +145,7 @@ func ExampleNewAllocator() {
 	)
 
 	// Check how C allocator is implemented
-	// or batchallocator soruce for a reference
+	// or batchallocator source for a reference
 
 	_ = alloc
 }
