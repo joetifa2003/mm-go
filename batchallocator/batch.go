@@ -13,7 +13,7 @@ import (
 	"github.com/joetifa2003/mm-go/minheap"
 )
 
-var pageSize = os.Getpagesize() //  Platform-specific alignment, usually corresponding to the word size
+var pageSize = os.Getpagesize()
 
 const (
 	alignment     = unsafe.Alignof(uintptr(0))
@@ -155,7 +155,7 @@ func batchAllocatorDestroy(a unsafe.Pointer) {
 	balloc := (*BatchAllocator)(a)
 
 	// Free all buckets in the heap
-	for b := range balloc.buckets.Iter() {
+	for _, b := range balloc.buckets.Iter() {
 		b.Free(balloc.alloc)
 	}
 

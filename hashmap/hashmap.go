@@ -1,8 +1,11 @@
 package hashmap
 
 import (
+	"iter"
+
 	"github.com/dolthub/maphash"
 
+	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/allocator"
 	"github.com/joetifa2003/mm-go/linkedlist"
 	"github.com/joetifa2003/mm-go/vector"
@@ -38,14 +41,14 @@ func (hm *Hashmap[K, V]) extend() {
 	hm.totalTaken = 0
 	hm.pairs = newPairs
 
-	for _, pairs := range oldPairs.Slice() {
+	for _, pairs := range oldPairs.Iter() {
 		if pairs == nil {
 			continue
 		}
 
-		pairs.ForEach(func(idx int, p pair[K, V]) {
+		for _, p := range pairs.Iter() {
 			hm.Insert(p.key, p.value)
-		})
+		}
 	}
 }
 
@@ -81,14 +84,14 @@ func (hm *Hashmap[K, V]) Get(key K) (value V, exists bool) {
 	idx := int(hash % uint64(hm.pairs.Len()))
 	pairs := hm.pairs.At(idx)
 	if pairs == nil {
-		return *new(V), false
+		return mm.Zero[V](), false
 	}
 
 	pairIdx, ok := pairs.FindIndex(func(value pair[K, V]) bool {
 		return value.key == key
 	})
 	if !ok {
-		return *new(V), false
+		return mm.Zero[V](), false
 	}
 
 	return pairs.At(pairIdx).value, ok
@@ -114,16 +117,20 @@ func (hm *Hashmap[K, V]) GetPtr(key K) (value *V, exists bool) {
 	return &pairs.AtPtr(pairIdx).value, ok
 }
 
-// ForEach iterates through all key/value pairs
-func (hm *Hashmap[K, V]) ForEach(f func(key K, value V)) {
-	for _, pairs := range hm.pairs.Slice() {
-		if pairs == nil {
-			continue
-		}
+// Iter returns an iterator over all key/value pairs
+func (hm *Hashmap[K, V]) Iter() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		for _, pairs := range hm.pairs.Iter() {
+			if pairs == nil {
+				continue
+			}
 
-		pairs.ForEach(func(idx int, p pair[K, V]) {
-			f(p.key, p.value)
-		})
+			for _, pair := range pairs.Iter() {
+				if !yield(pair.key, pair.value) {
+					return
+				}
+			}
+		}
 	}
 }
 
@@ -131,14 +138,14 @@ func (hm *Hashmap[K, V]) ForEach(f func(key K, value V)) {
 func (hm *Hashmap[K, V]) Values() []V {
 	res := make([]V, 0)
 
-	for _, pairs := range hm.pairs.Slice() {
+	for _, pairs := range hm.pairs.Iter() {
 		if pairs == nil {
 			continue
 		}
 
-		pairs.ForEach(func(idx int, p pair[K, V]) {
+		for _, p := range pairs.Iter() {
 			res = append(res, p.value)
-		})
+		}
 	}
 
 	return res
@@ -148,14 +155,14 @@ func (hm *Hashmap[K, V]) Values() []V {
 func (hm *Hashmap[K, V]) Keys() []K {
 	res := make([]K, 0)
 
-	for _, pairs := range hm.pairs.Slice() {
+	for _, pairs := range hm.pairs.Iter() {
 		if pairs == nil {
 			continue
 		}
 
-		pairs.ForEach(func(idx int, p pair[K, V]) {
+		for _, p := range pairs.Iter() {
 			res = append(res, p.key)
-		})
+		}
 	}
 
 	return res
@@ -178,7 +185,7 @@ func (hm *Hashmap[K, V]) Delete(key K) {
 
 // Free frees the Hashmap
 func (hm *Hashmap[K, V]) Free() {
-	for _, pairs := range hm.pairs.Slice() {
+	for _, pairs := range hm.pairs.Iter() {
 		if pairs != nil {
 			pairs.Free()
 		}

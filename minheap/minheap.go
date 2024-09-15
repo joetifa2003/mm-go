@@ -120,6 +120,6 @@ func (h *MinHeap[T]) removeAt(index int) {
 	}
 }
 
-func (h *MinHeap[T]) Iter() iter.Seq[T] {
+func (h *MinHeap[T]) Iter() iter.Seq2[int, T] {
 	return h.data.Iter()
 }

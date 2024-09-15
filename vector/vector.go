@@ -134,10 +134,11 @@ func (v *Vector[T]) RemoveAt(idx int) T {
 	return tmp
 }
 
-func (v *Vector[T]) Iter() iter.Seq[T] {
-	return func(yield func(T) bool) {
+// Iter iterates over the vector
+func (v *Vector[T]) Iter() iter.Seq2[int, T] {
+	return func(yield func(int, T) bool) {
 		for i := 0; i < v.len; i++ {
-			if !yield(v.data[i]) {
+			if !yield(i, v.data[i]) {
 				return
 			}
 		}

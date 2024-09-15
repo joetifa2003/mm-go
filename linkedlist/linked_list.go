@@ -133,14 +133,17 @@ func (ll *LinkedList[T]) ForEach(f func(idx int, value T)) {
 	}
 }
 
-func (ll *LinkedList[T]) Iter() iter.Seq[T] {
-	return func(yield func(T) bool) {
+// Iter returns an iterator over the linked list values.
+func (ll *LinkedList[T]) Iter() iter.Seq2[int, T] {
+	return func(yield func(int, T) bool) {
+		idx := 0
 		currentNode := ll.head
 		for currentNode != nil {
-			if !yield(currentNode.value) {
+			if !yield(idx, currentNode.value) {
 				return
 			}
 			currentNode = currentNode.next
+			idx++
 		}
 	}
 }
