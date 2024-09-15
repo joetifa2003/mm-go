@@ -31,7 +31,7 @@ type MyStruct struct {
 
 func Example_datastructures() {
 	alloc := allocator.NewC()
-	defer alloc.Destroy() // all the memory allocated bellow will be freed, no need to free it manually.
+	defer alloc.Destroy()
 
 	p := allocator.Alloc[MyStruct](alloc)
 	defer allocator.Free(alloc, p)
