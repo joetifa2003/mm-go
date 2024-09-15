@@ -81,26 +81,35 @@ mm-go can sometimes be 5-10 times faster.
 ```
 Run go test ./... -bench=. -count 5 > out.txt && benchstat out.txt
 
-name                                time/op
-pkg:github.com/joetifa2003/mm-go goos:linux goarch:amd64
-HeapManaged/node_count_10000-2       504µs ± 1%
-HeapManaged/node_count_100000-2     3.73ms ± 6%
-HeapManaged/node_count_10000000-2    664ms ± 8%
-HeapManaged/node_count_100000000-2   6.30s ± 4%
-Manual/node_count_10000-2            226µs ± 1%
-Manual/node_count_100000-2           576µs ± 1%
-Manual/node_count_10000000-2        70.6ms ± 1%
-Manual/node_count_100000000-2        702ms ± 1%
-ArenaManual/node_count_10000-2       226µs ± 1%
-ArenaManual/node_count_100000-2      553µs ± 0%
-ArenaManual/node_count_10000000-2   69.1ms ± 0%
-ArenaManual/node_count_100000000-2   681ms ± 1%
-BinaryTreeManaged-2                  6.07s ±10%
-BinaryTreeArena/chunk_size_50-2      2.30s ±21%
-BinaryTreeArena/chunk_size_100-2     1.47s ± 5%
-BinaryTreeArena/chunk_size_150-2     1.42s ±36%
-BinaryTreeArena/chunk_size_250-2     1.11s ± 0%
-BinaryTreeArena/chunk_size_500-2     1.00s ± 0%
+
+goos: linux
+goarch: amd64
+pkg: github.com/joetifa2003/mm-go
+cpu: AMD Ryzen 7 5800H with Radeon Graphics
+                                              │   out.txt    │
+                                              │    sec/op    │
+LinkedListManaged-16                            605.7µ ± ∞ ¹
+LinkedListCAlloc-16                             933.1µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_100-16     513.3µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_200-16     405.8µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_500-16     425.4µ ± ∞ ¹
+LinkedListBatchAllocator/bucket_size_10000-16   200.7µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_100-16          105.3µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_200-16          95.50µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_500-16          83.02µ ± ∞ ¹
+LinkedListTypedArena/chunk_size_10000-16        75.96µ ± ∞ ¹
+geomean                                         240.1µ
+¹ need >= 6 samples for confidence interval at level 0.95
+
+pkg: github.com/joetifa2003/mm-go/hashmap
+                     │   out.txt    │
+                     │    sec/op    │
+HashmapGo-16           210.7µ ± ∞ ¹
+HashmapCAlloc-16       189.1µ ± ∞ ¹
+HashmapBatchAlloc-16   118.2µ ± ∞ ¹
+geomean                167.6µ
+¹ need >= 6 samples for confidence interval at level 0.95
+
 ```
 
 <!-- gomarkdoc:embed:start -->
