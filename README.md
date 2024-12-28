@@ -17,6 +17,10 @@ and this is where mm-go comes in to play.
 -   Try to minimize calls to cgo by preallocating (using batchallocator/Arena/AllocMany).
 -   Check the docs, test files and read the README.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=joetifa2003/mm-go&type=Date)](https://star-history.com/#joetifa2003/mm-go&Date)
+
 ## Installing
 
 ```
