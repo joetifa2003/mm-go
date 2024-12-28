@@ -2,7 +2,6 @@ package mmapallocator
 
 import (
 	"os"
-	"syscall"
 	"unsafe"
 
 	"github.com/edsrzf/mmap-go"
@@ -53,7 +52,7 @@ func mmap_alloc(allocator unsafe.Pointer, size int) unsafe.Pointer {
 
 	if viableChunk == nil {
 		totalSize := int(mm.Align(uintptr(size)+sizeOfChunk+sizeOfPtrMeta, uintptr(pageSize)))
-		res, err := mmap.MapRegion(nil, totalSize, syscall.PROT_READ|syscall.PROT_WRITE, mmap.ANON|mmap.RDWR, 0)
+		res, err := mmap.MapRegion(nil, totalSize, mmap.RDWR, mmap.ANON, 0)
 		if err != nil {
 			panic(err)
 		}
