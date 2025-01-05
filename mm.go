@@ -13,3 +13,9 @@ func Zero[T any]() T {
 	var zeroV T
 	return zeroV
 }
+
+// Helper function to handle memory alignment for a given pointer
+func Align(ptr uintptr, alignment uintptr) uintptr {
+	mask := alignment - 1
+	return (ptr + mask) &^ mask
+}

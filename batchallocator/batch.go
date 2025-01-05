@@ -160,8 +160,10 @@ func batchAllocatorDestroy(a unsafe.Pointer) {
 		b.Free(balloc.alloc)
 	}
 
+	parentAllocator := balloc.alloc
 	balloc.buckets.Free()
 	allocator.Free(balloc.alloc, balloc)
+	parentAllocator.Destroy()
 }
 
 // Helper function to handle memory alignment for a given pointer

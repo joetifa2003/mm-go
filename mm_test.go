@@ -8,6 +8,7 @@ import (
 	"github.com/joetifa2003/mm-go"
 	"github.com/joetifa2003/mm-go/allocator"
 	"github.com/joetifa2003/mm-go/batchallocator"
+	"github.com/joetifa2003/mm-go/mmapallocator"
 	"github.com/joetifa2003/mm-go/typedarena"
 )
 
@@ -96,6 +97,16 @@ func BenchmarkLinkedListBatchAllocator(b *testing.B) {
 	}
 }
 
+func BenchmarkLinkedListBatchAllocatorMMap(b *testing.B) {
+	for _, bucketSize := range []int{100, 200, 500, LINKED_LIST_SIZE} {
+		b.Run(fmt.Sprintf("bucket size %d", bucketSize), func(b *testing.B) {
+			for range b.N {
+				benchLinkedListBatchAllocatorMMap(b, LINKED_LIST_SIZE, bucketSize)
+			}
+		})
+	}
+}
+
 func BenchmarkLinkedListTypedArena(b *testing.B) {
 	for _, chunkSize := range []int{100, 200, 500, LINKED_LIST_SIZE} {
 		b.Run(fmt.Sprintf("chunk size %d", chunkSize), func(b *testing.B) {
@@ -147,6 +158,19 @@ func benchLinkedListCAlloc(b *testing.B, size int) {
 
 func benchLinkedListBatchAllocator(b *testing.B, size int, bucketSize int) {
 	alloc := batchallocator.New(allocator.NewC(),
+		batchallocator.WithBucketSize(mm.SizeOf[Node[int]]()*bucketSize),
+	)
+	defer alloc.Destroy()
+
+	list := allocator.Alloc[LinkedList[int]](alloc)
+	for i := range size {
+		linkedListPushAlloc(alloc, list, i)
+	}
+	assertLinkedList(b, list)
+}
+
+func benchLinkedListBatchAllocatorMMap(b *testing.B, size int, bucketSize int) {
+	alloc := batchallocator.New(mmapallocator.NewMMapAllocator(),
 		batchallocator.WithBucketSize(mm.SizeOf[Node[int]]()*bucketSize),
 	)
 	defer alloc.Destroy()
