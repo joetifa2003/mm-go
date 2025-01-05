@@ -10,9 +10,34 @@ import (
 	"github.com/joetifa2003/mm-go/allocator"
 )
 
-type mmapMeta struct {
-	size  int
+const (
+	sizeClassCount = 9
+	bigSizeClass   = -1
+)
+
+var sizeClasses = [sizeClassCount]int{32, 64, 128, 256, 512, 1024, 2048, 4096, bigSizeClass}
+
+func getSizeClass(size int) (int, int) {
+	for i, sizeClass := range sizeClasses {
+		if size <= sizeClass {
+			return i, sizeClass
+		}
+	}
+
+	return len(sizeClasses) - 1, bigSizeClass
+}
+
+var freeLists [sizeClassCount]*block
+
+type block struct {
+	data  unsafe.Pointer
 	chunk *chunk
+	next  *block
+	size  int
+}
+
+type ptrMeta struct {
+	block *block
 }
 
 type chunk struct {
@@ -20,16 +45,13 @@ type chunk struct {
 	offset uintptr
 	size   uintptr
 	ptrs   uintptr
-	next   *chunk
-	prev   *chunk
 }
 
 var pageSize = os.Getpagesize() * 15
 
-var chunkHead *chunk
-
 const (
-	sizeOfPtrMeta = unsafe.Sizeof(mmapMeta{})
+	sizeOfPtrMeta = unsafe.Sizeof(ptrMeta{})
+	sizeOfBlock   = unsafe.Sizeof(block{})
 	sizeOfChunk   = unsafe.Sizeof(chunk{})
 	alignment     = unsafe.Alignof(uintptr(0))
 )
@@ -39,107 +61,54 @@ func NewMMapAllocator() allocator.Allocator {
 }
 
 func mmap_alloc(allocator unsafe.Pointer, size int) unsafe.Pointer {
-	var viableChunk *chunk
-	currentChunk := chunkHead
+	sizeClassIdx, sizeClass := getSizeClass(int(sizeOfPtrMeta) + size)
 
-	for currentChunk != nil {
-		if currentChunk.offset+uintptr(size)+sizeOfPtrMeta <= currentChunk.size {
-			viableChunk = currentChunk
-			break
-		}
-		currentChunk = currentChunk.next
+	b := freeLists[sizeClassIdx]
+	if b != nil {
+		ptrMeta := (*ptrMeta)(unsafe.Pointer(uintptr(b.data)))
+		ptrMeta.block = b
+		b.chunk.ptrs++
+		freeLists[sizeClassIdx] = b.next
+		return unsafe.Pointer(uintptr(unsafe.Pointer(ptrMeta)) + sizeOfPtrMeta)
 	}
 
-	if viableChunk == nil {
-		totalSize := int(mm.Align(uintptr(size)+sizeOfChunk+sizeOfPtrMeta, uintptr(pageSize)))
-		res, err := mmap.MapRegion(nil, totalSize, mmap.RDWR, mmap.ANON, 0)
-		if err != nil {
-			panic(err)
-		}
-
-		viableChunk = (*chunk)(unsafe.Pointer(&res[0]))
-		viableChunk.data = unsafe.Pointer(uintptr(unsafe.Pointer(&res[0])) + sizeOfChunk)
-		viableChunk.size = uintptr(totalSize - int(sizeOfChunk))
-		viableChunk.offset = 0
-		viableChunk.ptrs = 0
-
-		if chunkHead != nil {
-			viableChunk.next = chunkHead
-			chunkHead.prev = viableChunk
-			chunkHead = viableChunk
-		} else {
-			chunkHead = viableChunk
-		}
+	// init size class
+	totalSize := mm.Align(sizeOfChunk+uintptr(sizeClass)+sizeOfBlock, uintptr(pageSize))
+	m, err := mmap.MapRegion(nil, int(totalSize), mmap.RDWR, mmap.ANON, 0)
+	if err != nil {
+		panic(err)
 	}
 
-	ptrMeta := (*mmapMeta)(unsafe.Pointer(uintptr(viableChunk.data) + viableChunk.offset))
-	ptrMeta.size = size
-	ptrMeta.chunk = viableChunk
-	viableChunk.offset = mm.Align(viableChunk.offset+uintptr(size)+sizeOfPtrMeta, alignment)
-	viableChunk.ptrs++
+	chunk := (*chunk)(unsafe.Pointer(&m[0]))
+	chunk.data = unsafe.Pointer(unsafe.Pointer(&m[sizeOfChunk]))
+	chunk.offset = 0
+	chunk.size = totalSize - sizeOfChunk
 
-	ptr := unsafe.Pointer(uintptr(unsafe.Pointer(ptrMeta)) + uintptr(sizeOfPtrMeta))
-	return ptr
+	nBlocks := chunk.size / (uintptr(sizeClass) + sizeOfBlock)
+	for i := uintptr(0); i < nBlocks; i++ {
+		b := (*block)(unsafe.Pointer(uintptr(chunk.data) + uintptr(i*sizeOfBlock)))
+		b.data = unsafe.Pointer(uintptr(chunk.data) + uintptr(i*(uintptr(sizeClass)+sizeOfBlock)))
+		b.next = freeLists[sizeClassIdx]
+		b.size = sizeClass
+		b.chunk = chunk
+		freeLists[sizeClassIdx] = b
+	}
+
+	return mmap_alloc(allocator, size)
 }
 
 func mmap_free(allocator unsafe.Pointer, ptr unsafe.Pointer) {
-	ptrMeta := (*mmapMeta)(unsafe.Pointer(uintptr(ptr) - sizeOfPtrMeta))
-	chunk := ptrMeta.chunk
-	chunk.ptrs--
-
-	if chunk.ptrs == 0 {
-		if chunk == chunkHead {
-			chunkHead = chunkHead.next
-		} else {
-			if chunk.prev != nil {
-				chunk.prev.next = chunk.next
-			}
-
-			if chunk.next != nil {
-				chunk.next.prev = chunk.prev
-			}
-		}
-
-		m := mmap.MMap(
-			unsafe.Slice(
-				(*byte)(
-					unsafe.Pointer(uintptr(chunk.data)-sizeOfChunk),
-				), chunk.size+sizeOfChunk),
-		)
-		err := m.Unmap()
-		if err != nil {
-			panic(err)
-		}
-	}
+	ptrMeta := (*ptrMeta)(unsafe.Pointer(uintptr(ptr) - sizeOfPtrMeta))
+	block := ptrMeta.block
+	sizeClassIdx, _ := getSizeClass(block.size)
+	block.chunk.ptrs--
+	head := freeLists[sizeClassIdx]
+	block.next = head
+	freeLists[sizeClassIdx] = block
 }
 
 func mmap_realloc(allocator unsafe.Pointer, ptr unsafe.Pointer, size int) unsafe.Pointer {
-	oldMeta := (*mmapMeta)(unsafe.Pointer(uintptr(ptr) - sizeOfPtrMeta))
-	oldData := unsafe.Slice((*byte)(ptr), oldMeta.size)
-	newPtr := mmap_alloc(allocator, size)
-	newData := unsafe.Slice((*byte)(newPtr), size)
-	copy(newData, oldData)
-	mmap_free(allocator, ptr)
-
-	return newPtr
+	return nil
 }
 
-func mmap_destroy(allocator unsafe.Pointer) {
-	currentChunk := chunkHead
-	for currentChunk != nil {
-		nextChunk := currentChunk.next
-		m := mmap.MMap(
-			unsafe.Slice(
-				(*byte)(
-					unsafe.Pointer(uintptr(currentChunk.data)-sizeOfChunk),
-				), currentChunk.size+sizeOfChunk),
-		)
-		err := m.Unmap()
-		if err != nil {
-			panic(err)
-		}
-		currentChunk = nextChunk
-	}
-
-	chunkHead = nil
-}
+func mmap_destroy(allocator unsafe.Pointer) {}
